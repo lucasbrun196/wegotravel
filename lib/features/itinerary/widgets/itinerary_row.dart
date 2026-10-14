@@ -13,6 +13,7 @@ import '../../../data/models/bill.dart';
 import '../../../data/models/itinerary_enums.dart';
 import '../../../data/models/itinerary_item.dart';
 import '../../../shared/widgets/domain/category_badge.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import 'itinerary_chip.dart';
 import 'itinerary_form_sheet.dart';
 import 'weather_chip.dart';
@@ -321,7 +322,7 @@ class _StatusButton extends ConsumerWidget {
     await ref
         .read(itineraryRepositoryProvider)
         .deleteItem(ref.read(currentTripIdProvider), item.id);
-    if (context.mounted) context.showSnack('Atividade excluída');
+    if (context.mounted) AppToast.success('Atividade excluída');
   }
 }
 
@@ -358,7 +359,7 @@ class _LinkChip extends StatelessWidget {
         if (uri == null) return;
         final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
         if (!ok && context.mounted) {
-          context.showSnack('Não deu para abrir o link', isError: true);
+          AppToast.error('Não deu para abrir o link');
         }
       },
       child: const ItineraryChip(

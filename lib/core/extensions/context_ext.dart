@@ -29,24 +29,4 @@ extension ContextX on BuildContext {
 
   /// Respeita a preferência de acessibilidade de reduzir animações.
   bool get reduceMotion => MediaQuery.of(this).disableAnimations;
-
-  void showSnack(String message, {bool isError = false, IconData? icon}) {
-    ScaffoldMessenger.of(this)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: Theme.of(this).colorScheme.surface, size: 20),
-                const SizedBox(width: 12),
-              ],
-              Expanded(child: Text(message)),
-            ],
-          ),
-          backgroundColor: isError ? Theme.of(this).colorScheme.error : null,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-  }
 }

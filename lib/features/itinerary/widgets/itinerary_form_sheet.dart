@@ -12,6 +12,7 @@ import '../../../data/models/bill.dart';
 import '../../../data/models/itinerary_enums.dart';
 import '../../../data/models/itinerary_item.dart';
 import '../../../data/services/geocoding_service.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/inputs/date_range_dialog.dart';
 import '../../../shared/widgets/inputs/map_place_field.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
@@ -238,7 +239,7 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        context.showSnack(
+        AppToast.success(
           existing == null ? 'Atividade adicionada!' : 'Atividade atualizada',
           icon: Icons.check_circle_rounded,
         );
@@ -246,7 +247,7 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        context.showSnack('Não deu para salvar: $e', isError: true);
+        AppToast.error('Não deu para salvar: $e');
       }
     }
   }

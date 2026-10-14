@@ -12,6 +12,7 @@ import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../data/services/geocoding_service.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
 
 /// Abre o mapa para escolher um ponto e devolve o lugar escolhido, ou
@@ -223,7 +224,7 @@ class _MapPickerSheetState extends ConsumerState<MapPickerSheet>
     });
 
     if (places.isEmpty && context.mounted) {
-      context.showSnack('Não achei esse lugar. Tente outro nome.');
+      AppToast.warning('Não achei esse lugar. Tente outro nome.');
     }
   }
 

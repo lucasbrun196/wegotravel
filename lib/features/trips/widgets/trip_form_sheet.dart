@@ -8,6 +8,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/utils/money.dart';
 import '../../../data/models/trip.dart';
 import '../../../data/services/geocoding_service.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/inputs/date_range_dialog.dart';
 import '../../../shared/widgets/inputs/map_place_field.dart';
 import '../../../shared/widgets/inputs/money_field.dart';
@@ -120,7 +121,7 @@ class _TripFormSheetState extends ConsumerState<TripFormSheet> {
         );
         if (mounted) {
           Navigator.of(context).pop(id);
-          context.showSnack('Viagem criada!', icon: Icons.celebration_rounded);
+          AppToast.success('Viagem criada!', icon: Icons.celebration_rounded);
         }
       } else {
         await repo.updateTrip(
@@ -137,13 +138,13 @@ class _TripFormSheetState extends ConsumerState<TripFormSheet> {
         );
         if (mounted) {
           Navigator.of(context).pop(widget.trip!.id);
-          context.showSnack('Viagem atualizada');
+          AppToast.success('Viagem atualizada');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        context.showSnack('Não deu para salvar: $e', isError: true);
+        AppToast.error('Não deu para salvar: $e');
       }
     }
   }
