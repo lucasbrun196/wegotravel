@@ -27,7 +27,6 @@ class UserRepository {
       uid: user.uid,
       email: email,
       displayName: displayName,
-      emoji: (existing.data()?['emoji'] as String?) ?? '🙂',
       createdAt: (existing.data()?['createdAt'] as Timestamp?)?.toDate(),
     );
 
@@ -69,10 +68,9 @@ class UserRepository {
     return snap.docs.isEmpty ? null : AppUser.fromDoc(snap.docs.first);
   }
 
-  Future<void> updateProfile(String uid, {String? displayName, String? emoji}) =>
+  Future<void> updateProfile(String uid, {String? displayName}) =>
       _refs.user(uid).set({
         'displayName': ?displayName,
-        'emoji': ?emoji,
       }, SetOptions(merge: true));
 
   /// Apaga o espelho da conta, na exclusão do cadastro.

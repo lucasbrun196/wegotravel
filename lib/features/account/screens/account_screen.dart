@@ -242,7 +242,7 @@ class _ProfileSheetState extends ConsumerState<_ProfileSheet> {
 
       await ref
           .read(tripRepositoryProvider)
-          .syncMemberProfile(uid: uid, name: name, emoji: widget.user.emoji);
+          .syncMemberProfile(uid: uid, name: name);
 
       if (mounted) {
         Navigator.of(context).pop();

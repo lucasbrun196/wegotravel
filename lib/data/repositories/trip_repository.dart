@@ -167,9 +167,9 @@ class TripRepository {
   Future<void> updateMember(String tripId, Member member) =>
       _refs.members(tripId).doc(member.id).set(member.toMap(), SetOptions(merge: true));
 
-  /// Copia nome e emoji do perfil para o membro em todas as viagens.
+  /// Copia o nome do perfil para o membro em todas as viagens.
   ///
-  /// Nome e emoji são denormalizados em cada `members/{uid}` — é o que
+  /// O nome é denormalizado em cada `members/{uid}` — é o que
   /// deixa a lista de participantes ler sem buscar conta por conta. Sem
   /// esta cópia, mudar o perfil não apareceria em viagem nenhuma.
   /// `set` com merge, e não `update`: uma viagem sem o documento de
@@ -177,7 +177,6 @@ class TripRepository {
   Future<void> syncMemberProfile({
     required String uid,
     required String name,
-    required String emoji,
   }) async {
     final snap = await _refs.tripsOf(uid).get();
     if (snap.docs.isEmpty) return;
@@ -186,7 +185,7 @@ class TripRepository {
     for (final doc in snap.docs) {
       batch.set(
         _refs.members(doc.id).doc(uid),
-        {'name': name, 'emoji': emoji},
+        {'name': name},
         SetOptions(merge: true),
       );
     }
