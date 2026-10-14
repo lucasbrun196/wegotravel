@@ -8,6 +8,8 @@ class Trip {
     required this.adminId,
     this.memberIds = const [],
     this.destination = '',
+    this.destinationLat,
+    this.destinationLng,
     this.description,
     this.startDate,
     this.endDate,
@@ -30,6 +32,13 @@ class Trip {
   /// (`array-contains`) e o que as regras de segurança conferem.
   final List<String> memberIds;
   final String destination;
+
+  /// Ponto do destino escolhido no mapa. Como no roteiro, a coordenada só
+  /// existe no banco — a tela mostra `destination`. É onde o mapa abre
+  /// quando a primeira atividade ainda não tem ponto.
+  final double? destinationLat;
+  final double? destinationLng;
+
   final String? description;
   final DateTime? startDate;
   final DateTime? endDate;
@@ -44,6 +53,8 @@ class Trip {
   final DateTime? updatedAt;
 
   bool get hasDates => startDate != null && endDate != null;
+
+  bool get hasDestinationCoords => destinationLat != null && destinationLng != null;
 
   bool isAdmin(String? uid) => uid != null && uid == adminId;
 
@@ -77,6 +88,8 @@ class Trip {
       adminId: d['adminId'] as String? ?? '',
       memberIds: (d['memberIds'] as List<dynamic>? ?? []).cast<String>(),
       destination: d['destination'] as String? ?? '',
+      destinationLat: (d['destinationLat'] as num?)?.toDouble(),
+      destinationLng: (d['destinationLng'] as num?)?.toDouble(),
       description: d['description'] as String?,
       startDate: (d['startDate'] as Timestamp?)?.toDate(),
       endDate: (d['endDate'] as Timestamp?)?.toDate(),
@@ -94,6 +107,8 @@ class Trip {
         'adminId': adminId,
         'memberIds': memberIds,
         'destination': destination,
+        'destinationLat': destinationLat,
+        'destinationLng': destinationLng,
         'description': description,
         'startDate': startDate == null ? null : Timestamp.fromDate(startDate!),
         'endDate': endDate == null ? null : Timestamp.fromDate(endDate!),
@@ -109,6 +124,11 @@ class Trip {
     String? name,
     List<String>? memberIds,
     String? destination,
+    double? destinationLat,
+    double? destinationLng,
+    /// Tira o destino do mapa. Sem isto não há como zerar a coordenada:
+    /// `null` nos dois campos acima quer dizer "manter a atual".
+    bool clearDestinationCoords = false,
     String? description,
     DateTime? startDate,
     DateTime? endDate,
@@ -122,6 +142,8 @@ class Trip {
         adminId: adminId,
         memberIds: memberIds ?? this.memberIds,
         destination: destination ?? this.destination,
+        destinationLat: clearDestinationCoords ? null : destinationLat ?? this.destinationLat,
+        destinationLng: clearDestinationCoords ? null : destinationLng ?? this.destinationLng,
         description: description ?? this.description,
         startDate: startDate ?? this.startDate,
         endDate: endDate ?? this.endDate,

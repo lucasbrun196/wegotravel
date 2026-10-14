@@ -11,7 +11,6 @@ import '../../../core/config/map_config.dart';
 import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
-import '../../../data/models/itinerary_item.dart';
 import '../../../data/services/geocoding_service.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
 
@@ -26,9 +25,14 @@ import '../../../shared/widgets/layout/app_sheet.dart';
 ///
 /// Nos dois caminhos o `ProviderContainer` de quem abriu é reembrulhado: o
 /// mapa é montado no overlay do Navigator raiz, fora do escopo da viagem.
+///
+/// [near] é onde a câmera abre quando ainda não há ponto escolhido. Vem de
+/// quem chama, e não de uma leitura do roteiro aqui dentro: a "Nova viagem"
+/// abre o mapa fora de qualquer viagem, onde `itineraryProvider` lança.
 Future<PickedPlace?> showMapPicker(
   BuildContext context, {
   PickedPlace? initial,
+  ({double lat, double lng})? near,
 }) {
   if (!context.isMobile) {
     return showAppSheet<PickedPlace>(
@@ -36,7 +40,7 @@ Future<PickedPlace?> showMapPicker(
       title: 'Onde é?',
       subtitle: 'Busque ou toque no mapa para marcar o ponto',
       maxWidth: 640,
-      builder: (_) => MapPickerSheet(initial: initial),
+      builder: (_) => MapPickerSheet(initial: initial, near: near),
     );
   }
 
@@ -46,7 +50,7 @@ Future<PickedPlace?> showMapPicker(
       fullscreenDialog: true,
       builder: (_) => UncontrolledProviderScope(
         container: container,
-        child: _MapPickerPage(initial: initial),
+        child: _MapPickerPage(initial: initial, near: near),
       ),
     ),
   );
@@ -54,9 +58,10 @@ Future<PickedPlace?> showMapPicker(
 
 /// O seletor em tela cheia, usado no celular.
 class _MapPickerPage extends StatelessWidget {
-  const _MapPickerPage({this.initial});
+  const _MapPickerPage({this.initial, this.near});
 
   final PickedPlace? initial;
+  final ({double lat, double lng})? near;
 
   @override
   Widget build(BuildContext context) {
@@ -70,16 +75,19 @@ class _MapPickerPage extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: MapPickerSheet(initial: initial, fullscreen: true),
+        child: MapPickerSheet(initial: initial, near: near, fullscreen: true),
       ),
     );
   }
 }
 
 class MapPickerSheet extends ConsumerStatefulWidget {
-  const MapPickerSheet({super.key, this.initial, this.fullscreen = false});
+  const MapPickerSheet({super.key, this.initial, this.near, this.fullscreen = false});
 
   final PickedPlace? initial;
+
+  /// Onde a câmera abre quando ainda não há ponto — ver [showMapPicker].
+  final ({double lat, double lng})? near;
 
   /// Sem scroll externo: o mapa ocupa toda a altura que sobrar.
   final bool fullscreen;
@@ -133,7 +141,7 @@ class _MapPickerSheetState extends ConsumerState<MapPickerSheet>
     // sozinho para o zoom de abertura assim que qualquer coisa na tela
     // mudava.
     _startCenter = _resolveStartCenter();
-    _startZoom = _point != null || _hasItemWithCoords
+    _startZoom = _point != null || widget.near != null
         ? MapConfig.pinZoom
         : MapConfig.fallbackZoom;
   }
@@ -151,22 +159,16 @@ class _MapPickerSheetState extends ConsumerState<MapPickerSheet>
     super.dispose();
   }
 
-  /// Onde o mapa abre: o ponto já escolhido, senão a última atividade do
-  /// roteiro que tenha coordenada, senão o Brasil inteiro.
+  /// Onde o mapa abre: o ponto já escolhido, senão o [near] de quem
+  /// chamou, senão o Brasil inteiro.
   LatLng _resolveStartCenter() {
     final point = _point;
     if (point != null) return point;
 
-    for (final item in _itineraryItems.reversed) {
-      if (item.hasCoords) return LatLng(item.lat!, item.lng!);
-    }
+    final near = widget.near;
+    if (near != null) return LatLng(near.lat, near.lng);
     return const LatLng(MapConfig.fallbackLat, MapConfig.fallbackLng);
   }
-
-  bool get _hasItemWithCoords => _itineraryItems.any((i) => i.hasCoords);
-
-  List<ItineraryItem> get _itineraryItems =>
-      ref.read(itineraryProvider).valueOrNull ?? const <ItineraryItem>[];
 
   bool get _canConfirm => _point != null && _nameController.text.trim().isNotEmpty;
 
