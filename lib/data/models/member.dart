@@ -12,7 +12,6 @@ class Member {
     required this.id,
     required this.name,
     required this.email,
-    this.emoji = '🙂',
     this.colorValue,
     this.isAdmin = false,
     this.pixKey,
@@ -23,7 +22,6 @@ class Member {
   final String id;
   final String name;
   final String email;
-  final String emoji;
   final int? colorValue;
 
   /// Quem criou a viagem. Só o admin gerencia quem entra e sai.
@@ -44,17 +42,12 @@ class Member {
     AppColors.palm,
   ];
 
-  static const emojiOptions = [
-    '🙂', '😎', '🤠', '🏄', '🚗', '🌻', '🐚', '🎸',
-    '🦩', '🐬', '🍹', '🥥', '⛱️', '🗺️', '📸', '🎧',
-  ];
-
   Color get color =>
       colorValue != null ? Color(colorValue!) : palette[order % palette.length];
 
   String get shortName => name.trim().split(RegExp(r'\s+')).first;
 
-  /// O que o avatar mostra. O `emoji` continua salvo, mas não aparece mais.
+  /// O que o avatar mostra.
   String get initials => initialsOf(name);
 
   /// Cria o membro a partir de uma conta existente.
@@ -62,7 +55,6 @@ class Member {
         id: user.uid,
         name: user.displayName.isEmpty ? AppUser.nameFromEmail(user.email) : user.displayName,
         email: user.email,
-        emoji: user.emoji,
         isAdmin: isAdmin,
         order: order,
       );
@@ -73,7 +65,6 @@ class Member {
       id: doc.id,
       name: d['name'] as String? ?? 'Sem nome',
       email: d['email'] as String? ?? '',
-      emoji: d['emoji'] as String? ?? '🙂',
       colorValue: (d['colorValue'] as num?)?.toInt(),
       isAdmin: d['isAdmin'] as bool? ?? false,
       pixKey: d['pixKey'] as String?,
@@ -85,7 +76,6 @@ class Member {
   Map<String, dynamic> toMap() => {
         'name': name,
         'email': AppUser.normalizeEmail(email),
-        'emoji': emoji,
         'colorValue': colorValue,
         'isAdmin': isAdmin,
         'pixKey': pixKey,
@@ -95,7 +85,6 @@ class Member {
 
   Member copyWith({
     String? name,
-    String? emoji,
     int? colorValue,
     bool? isAdmin,
     String? pixKey,
@@ -105,7 +94,6 @@ class Member {
         id: id,
         name: name ?? this.name,
         email: email,
-        emoji: emoji ?? this.emoji,
         colorValue: colorValue ?? this.colorValue,
         isAdmin: isAdmin ?? this.isAdmin,
         pixKey: pixKey ?? this.pixKey,

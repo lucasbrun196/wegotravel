@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../core/theme/app_theme.dart';
+import '../shared/widgets/feedback/app_toast.dart';
 import '../shared/widgets/feedback/sync_banner.dart';
 import 'providers.dart';
 import 'router.dart';
@@ -34,8 +35,9 @@ class VacationApp extends ConsumerWidget {
       // Acima de qualquer rota: o aviso de offline é da sessão, não de
       // uma tela. Fica fora do `routerConfig` para não ser remontado a
       // cada navegação.
-      builder: (context, child) =>
-          SyncBanner(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => ToastHost(
+        child: SyncBanner(child: child ?? const SizedBox.shrink()),
+      ),
     );
   }
 }

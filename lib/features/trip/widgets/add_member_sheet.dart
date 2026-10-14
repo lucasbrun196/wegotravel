@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../data/models/app_user.dart';
 import '../../../data/repositories/trip_repository.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
 
 Future<void> showAddMemberSheet(BuildContext context, {required int nextOrder}) =>
@@ -85,7 +86,7 @@ class _AddMemberSheetState extends ConsumerState<AddMemberSheet> {
       switch (result) {
         case AddMemberResult.added:
           Navigator.of(context).pop();
-          context.showSnack(
+          AppToast.success(
             '${user.shortName} entrou na viagem!',
             icon: Icons.celebration_rounded,
           );

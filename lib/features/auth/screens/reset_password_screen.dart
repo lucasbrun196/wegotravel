@@ -7,6 +7,7 @@ import '../../../app/router.dart';
 import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../data/services/auth_service.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/feedback/error_banner.dart';
 import '../widgets/auth_layout.dart';
 
@@ -74,12 +75,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     try {
       await auth.signIn(email: email, password: _passwordController.text);
       if (mounted) {
-        context.showSnack('Senha alterada', icon: Icons.check_circle_rounded);
+        AppToast.success('Senha alterada', icon: Icons.check_circle_rounded);
         context.go(Routes.trips);
       }
     } on AuthFailure {
       if (mounted) {
-        context.showSnack('Senha alterada. Entre com a senha nova.',
+        AppToast.success('Senha alterada. Entre com a senha nova.',
             icon: Icons.check_circle_rounded);
         context.go(Routes.auth);
       }

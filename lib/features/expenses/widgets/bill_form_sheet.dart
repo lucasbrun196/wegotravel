@@ -11,6 +11,7 @@ import '../../../core/utils/money.dart';
 import '../../../data/models/bill.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/models/member.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/inputs/date_range_dialog.dart';
 import '../../../shared/widgets/domain/member_avatar.dart';
 import '../../../shared/widgets/inputs/money_field.dart';
@@ -127,7 +128,7 @@ class _BillFormSheetState extends ConsumerState<BillFormSheet> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_participants.isEmpty) {
-      context.showSnack('Escolha pelo menos um participante', isError: true);
+      AppToast.warning('Escolha pelo menos um participante');
       return;
     }
 
@@ -144,7 +145,7 @@ class _BillFormSheetState extends ConsumerState<BillFormSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        context.showSnack(
+        AppToast.success(
           widget.bill == null ? 'Conta criada!' : 'Conta atualizada',
           icon: Icons.check_circle_rounded,
         );
@@ -152,7 +153,7 @@ class _BillFormSheetState extends ConsumerState<BillFormSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        context.showSnack('Não deu para salvar: $e', isError: true);
+        AppToast.error('Não deu para salvar: $e');
       }
     }
   }

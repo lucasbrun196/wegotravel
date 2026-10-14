@@ -58,6 +58,16 @@ abstract final class AppColors {
   static const warning = Color(0xFFE39A2F);
   static const danger = Color(0xFFC9413A);
 
+  // Avisos flutuantes (`AppToast`). Saturados de propósito, para saltar
+  // sobre qualquer tela, no tema claro e no escuro. O verde e o amarelo
+  // levam texto escuro: com branco, o verde não passa de 2,3:1.
+  static const toastSuccess = Color(0xFF22C55E);
+  static const toastOnSuccess = Color(0xFF052E16);
+  static const toastError = Color(0xFFE5252A);
+  static const toastOnError = Color(0xFFFFFFFF);
+  static const toastWarning = Color(0xFFFACC15);
+  static const toastOnWarning = Color(0xFF1F1A00);
+
   // Gradientes
   static const sunsetGradient = LinearGradient(
     begin: Alignment.topLeft,

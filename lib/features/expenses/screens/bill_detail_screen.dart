@@ -20,6 +20,7 @@ import '../../../data/models/member.dart';
 import '../../../shared/widgets/cards/glass_card.dart';
 import '../../../shared/widgets/feedback/animated_progress_bar.dart';
 import '../../../shared/widgets/domain/member_avatar.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/feedback/empty_state.dart';
 import '../../../shared/widgets/feedback/loading_shimmer.dart';
 import '../../../shared/widgets/layout/section_header.dart';
@@ -168,7 +169,6 @@ class _TopBar extends ConsumerWidget {
     if (ok != true || !context.mounted) return;
 
     final tripId = ref.read(currentTripIdProvider);
-    final messenger = ScaffoldMessenger.of(context);
 
     // Sai da tela antes de apagar. A exclusão varre subcoleções e
     // arquivos, e o documento some do stream no meio do caminho — ficar
@@ -177,18 +177,9 @@ class _TopBar extends ConsumerWidget {
 
     try {
       await ref.read(billRepositoryProvider).deleteBill(tripId, bill.id);
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Conta excluída')));
+      AppToast.success('Conta excluída');
     } catch (e) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('Não deu para excluir a conta: $e'),
-            backgroundColor: AppColors.danger,
-          ),
-        );
+      AppToast.error('Não deu para excluir a conta: $e');
     }
   }
 }
@@ -768,7 +759,7 @@ class _AccumulatingFooter extends ConsumerWidget {
         .read(billRepositoryProvider)
         .closeAccumulatingBill(ref.read(currentTripIdProvider), bill);
     if (context.mounted) {
-      context.showSnack('Conta fechada e dividida');
+      AppToast.success('Conta fechada e dividida');
     }
   }
 }

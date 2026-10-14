@@ -12,8 +12,9 @@ import '../../../data/models/bill.dart';
 import '../../../data/models/itinerary_enums.dart';
 import '../../../data/models/itinerary_item.dart';
 import '../../../data/services/geocoding_service.dart';
-import '../../../core/config/map_config.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/inputs/date_range_dialog.dart';
+import '../../../shared/widgets/inputs/map_place_field.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
 import '../../../shared/widgets/inputs/multi_choice_chips.dart';
 import 'map_picker_sheet.dart';
@@ -146,8 +147,22 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
     );
   }
 
+  /// Onde o mapa abre sem ponto marcado: a última atividade que tenha
+  /// coordenada, senão o destino da viagem.
+  ({double lat, double lng})? get _mapNear {
+    final items = ref.read(itineraryProvider).valueOrNull ?? const <ItineraryItem>[];
+    for (final item in items.reversed) {
+      if (item.hasCoords) return (lat: item.lat!, lng: item.lng!);
+    }
+    final trip = ref.read(tripProvider).valueOrNull;
+    if (trip != null && trip.hasDestinationCoords) {
+      return (lat: trip.destinationLat!, lng: trip.destinationLng!);
+    }
+    return null;
+  }
+
   Future<void> _pickOnMap() async {
-    final place = await showMapPicker(context, initial: _pickedPlace);
+    final place = await showMapPicker(context, initial: _pickedPlace, near: _mapNear);
     if (!mounted || place == null) return;
     setState(() {
       _lat = place.lat;
@@ -224,7 +239,7 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        context.showSnack(
+        AppToast.success(
           existing == null ? 'Atividade adicionada!' : 'Atividade atualizada',
           icon: Icons.check_circle_rounded,
         );
@@ -232,7 +247,7 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        context.showSnack('Não deu para salvar: $e', isError: true);
+        AppToast.error('Não deu para salvar: $e');
       }
     }
   }
@@ -307,7 +322,7 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
                   // ----- Onde -----
                   Text('Onde', style: context.text.labelLarge),
                   Gap.vMd,
-                  _MapField(
+                  MapPlaceField(
                     hasPoint: _lat != null,
                     placeName: _placeController.text,
                     onPick: _pickOnMap,
@@ -433,141 +448,6 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
 }
 
 // ---------------------------------------------------------------
-
-/// Atalho para o mapa. O ponto é o que a previsão do tempo vai usar; a
-/// pessoa continua livre para digitar o lugar à mão nos campos abaixo.
-class _MapField extends StatelessWidget {
-  const _MapField({
-    required this.hasPoint,
-    required this.placeName,
-    required this.onPick,
-    required this.onClear,
-  });
-
-  final bool hasPoint;
-  final String placeName;
-  final VoidCallback onPick;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!MapConfig.isConfigured) {
-      return Container(
-        padding: const EdgeInsets.all(Gap.md),
-        decoration: BoxDecoration(
-          color: context.colors.surfaceContainerHigh,
-          borderRadius: Radii.brSm,
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.map_outlined, size: 16, color: context.colors.onSurfaceVariant),
-            Gap.hMd,
-            Expanded(
-              child: Text(
-                'O mapa precisa do token do Mapbox '
-                '(--dart-define=MAPBOX_TOKEN). Veja o README.',
-                style: context.text.bodySmall,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (!hasPoint) {
-      return OutlinedButton.icon(
-        onPressed: onPick,
-        icon: const Icon(Icons.map_outlined, size: 18),
-        label: const Text('Escolher no mapa'),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(Gap.md, Gap.sm, Gap.sm, Gap.sm),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: Radii.brSm,
-        border: Border.all(color: context.colors.outline),
-      ),
-      child: _PickedPlaceRow(
-        placeName: placeName,
-        onPick: onPick,
-        onClear: onClear,
-      ),
-    );
-  }
-}
-
-/// O lugar já marcado, com as ações de trocar e tirar do mapa.
-///
-/// "Trocar" e o "×" comem ~130px: em tela estreita sobra tão pouco que o nome
-/// do lugar aparece sempre truncado. Ali as ações descem para a linha de baixo.
-class _PickedPlaceRow extends StatelessWidget {
-  const _PickedPlaceRow({
-    required this.placeName,
-    required this.onPick,
-    required this.onClear,
-  });
-
-  final String placeName;
-  final VoidCallback onPick;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          placeName.trim().isEmpty ? 'Ponto marcado no mapa' : placeName.trim(),
-          style: context.text.labelLarge,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        Text('Marcado no mapa', style: context.text.labelSmall),
-      ],
-    );
-
-    final swap = TextButton(onPressed: onPick, child: const Text('Trocar'));
-    final clear = IconButton(
-      tooltip: 'Tirar do mapa',
-      onPressed: onClear,
-      icon: const Icon(Icons.close_rounded, size: 18),
-      visualDensity: VisualDensity.compact,
-    );
-
-    if (context.isNarrow) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.place_outlined, size: 18, color: context.colors.onSurfaceVariant),
-              Gap.hMd,
-              Expanded(child: label),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [swap, clear],
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Icon(Icons.place_outlined, size: 18, color: context.colors.onSurfaceVariant),
-        Gap.hMd,
-        Expanded(child: label),
-        swap,
-        clear,
-      ],
-    );
-  }
-}
 
 /// Horário é opcional: enquanto ninguém define, a atividade é "algum
 /// momento do dia" e vai para o fim da lista daquele dia.

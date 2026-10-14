@@ -12,6 +12,7 @@ import '../../../data/models/trip.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../shared/widgets/cards/glass_card.dart';
 import '../../../shared/widgets/domain/member_avatar.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/feedback/error_banner.dart';
 import '../../../shared/widgets/feedback/loading_shimmer.dart';
 import '../../../shared/widgets/layout/app_page.dart';
@@ -182,13 +183,13 @@ class AccountScreen extends ConsumerWidget {
     try {
       await ref.read(authServiceProvider).sendPasswordReset(email);
       if (context.mounted) {
-        context.showSnack(
+        AppToast.success(
           'Link de redefinição enviado para $email',
           icon: Icons.mark_email_read_rounded,
         );
       }
     } on AuthFailure catch (e) {
-      if (context.mounted) context.showSnack(e.message, isError: true);
+      if (context.mounted) AppToast.error(e.message);
     }
   }
 }
@@ -242,11 +243,11 @@ class _ProfileSheetState extends ConsumerState<_ProfileSheet> {
 
       await ref
           .read(tripRepositoryProvider)
-          .syncMemberProfile(uid: uid, name: name, emoji: widget.user.emoji);
+          .syncMemberProfile(uid: uid, name: name);
 
       if (mounted) {
         Navigator.of(context).pop();
-        context.showSnack('Perfil atualizado', icon: Icons.check_circle_rounded);
+        AppToast.success('Perfil atualizado', icon: Icons.check_circle_rounded);
       }
     } catch (e) {
       if (mounted) {
@@ -344,7 +345,7 @@ class _PasswordSheetState extends ConsumerState<_PasswordSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        context.showSnack('Senha alterada', icon: Icons.check_circle_rounded);
+        AppToast.success('Senha alterada', icon: Icons.check_circle_rounded);
       }
     } on AuthFailure catch (e) {
       if (mounted) {

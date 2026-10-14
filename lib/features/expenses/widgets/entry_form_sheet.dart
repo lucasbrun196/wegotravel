@@ -13,6 +13,7 @@ import '../../../data/models/enums.dart';
 import '../../../data/models/member.dart';
 import '../../../data/services/file_picker_service.dart';
 import '../../../data/services/storage_service.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/inputs/date_range_dialog.dart';
 import '../../../shared/widgets/domain/member_avatar.dart';
 import '../../../shared/widgets/inputs/money_field.dart';
@@ -109,7 +110,7 @@ class _EntryFormSheetState extends ConsumerState<EntryFormSheet> {
         setState(() => _receipts = [..._receipts, attachment]);
       }
     } catch (e) {
-      if (mounted) context.showSnack('Falha no envio: $e', isError: true);
+      if (mounted) AppToast.error('Falha no envio: $e');
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -118,7 +119,7 @@ class _EntryFormSheetState extends ConsumerState<EntryFormSheet> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_paidByMemberId == null) {
-      context.showSnack('Escolha quem pagou', isError: true);
+      AppToast.warning('Escolha quem pagou');
       return;
     }
 
@@ -141,12 +142,12 @@ class _EntryFormSheetState extends ConsumerState<EntryFormSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        context.showSnack('Lançamento salvo!', icon: Icons.check_circle_rounded);
+        AppToast.success('Lançamento salvo!', icon: Icons.check_circle_rounded);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        context.showSnack('Não deu para salvar: $e', isError: true);
+        AppToast.error('Não deu para salvar: $e');
       }
     }
   }

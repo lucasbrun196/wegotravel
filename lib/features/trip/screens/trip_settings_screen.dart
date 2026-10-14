@@ -13,6 +13,7 @@ import '../../../core/utils/money.dart';
 import '../../../data/models/member.dart';
 import '../../../shared/widgets/cards/glass_card.dart';
 import '../../../shared/widgets/domain/member_avatar.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/feedback/loading_shimmer.dart';
 import '../../../shared/widgets/layout/app_page.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
@@ -185,7 +186,6 @@ class TripSettingsScreen extends ConsumerWidget {
     if (ok != true || !context.mounted) return;
 
     final tripId = ref.read(currentTripIdProvider);
-    final messenger = ScaffoldMessenger.of(context);
 
     // Sai antes de apagar: a exclusão varre todas as subcoleções e o
     // documento some do stream no meio do caminho.
@@ -193,18 +193,9 @@ class TripSettingsScreen extends ConsumerWidget {
 
     try {
       await ref.read(tripRepositoryProvider).deleteTrip(tripId);
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Viagem excluída')));
+      AppToast.success('Viagem excluída');
     } catch (e) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('Não deu para excluir a viagem: $e'),
-            backgroundColor: AppColors.danger,
-          ),
-        );
+      AppToast.error('Não deu para excluir a viagem: $e');
     }
   }
 
@@ -233,23 +224,13 @@ class TripSettingsScreen extends ConsumerWidget {
     if (ok != true || !context.mounted) return;
 
     final tripId = ref.read(currentTripIdProvider);
-    final messenger = ScaffoldMessenger.of(context);
     context.go(Routes.trips);
 
     try {
       await ref.read(tripRepositoryProvider).removeMember(tripId, uid);
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Você saiu da viagem')));
+      AppToast.success('Você saiu da viagem');
     } catch (e) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('Não deu para sair: $e'),
-            backgroundColor: AppColors.danger,
-          ),
-        );
+      AppToast.error('Não deu para sair: $e');
     }
   }
 }
@@ -401,7 +382,7 @@ class _MemberTile extends ConsumerWidget {
     await ref
         .read(tripRepositoryProvider)
         .removeMember(ref.read(currentTripIdProvider), member.id);
-    if (context.mounted) context.showSnack('${member.shortName} saiu da viagem');
+    if (context.mounted) AppToast.success('${member.shortName} saiu da viagem');
   }
 }
 
@@ -450,12 +431,12 @@ class _EditMemberSheetState extends ConsumerState<_EditMemberSheet> {
           );
       if (mounted) {
         Navigator.of(context).pop();
-        context.showSnack('Perfil atualizado', icon: Icons.check_circle_rounded);
+        AppToast.success('Perfil atualizado', icon: Icons.check_circle_rounded);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        context.showSnack('Não deu para salvar: $e', isError: true);
+        AppToast.error('Não deu para salvar: $e');
       }
     }
   }

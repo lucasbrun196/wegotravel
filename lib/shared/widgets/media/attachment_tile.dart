@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/attachment.dart';
+import '../feedback/app_toast.dart';
 
 /// Miniatura de um comprovante. Imagem mostra preview; PDF mostra ícone.
 class AttachmentThumb extends StatelessWidget {
@@ -113,7 +114,7 @@ Future<void> openAttachment(BuildContext context, Attachment attachment) async {
 
   final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!ok && context.mounted) {
-    context.showSnack('Não deu para abrir o arquivo', isError: true);
+    AppToast.error('Não deu para abrir o arquivo');
   }
 }
 

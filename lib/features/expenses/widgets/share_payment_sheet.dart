@@ -14,6 +14,7 @@ import '../../../data/models/bill_share.dart';
 import '../../../data/models/member.dart';
 import '../../../data/services/file_picker_service.dart';
 import '../../../data/services/storage_service.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/inputs/date_range_dialog.dart';
 import '../../../shared/widgets/domain/member_avatar.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
@@ -116,7 +117,7 @@ class _SharePaymentSheetState extends ConsumerState<SharePaymentSheet> {
         setState(() => _receipts = [..._receipts, attachment]);
       }
     } catch (e) {
-      if (mounted) context.showSnack('Falha no envio: $e', isError: true);
+      if (mounted) AppToast.error('Falha no envio: $e');
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -125,7 +126,7 @@ class _SharePaymentSheetState extends ConsumerState<SharePaymentSheet> {
   Future<void> _confirm() async {
     final chosen = widget.shares.where((s) => _selected.contains(s.id)).toList();
     if (chosen.isEmpty) {
-      context.showSnack('Selecione ao menos uma parcela', isError: true);
+      AppToast.warning('Selecione ao menos uma parcela');
       return;
     }
 
@@ -139,7 +140,7 @@ class _SharePaymentSheetState extends ConsumerState<SharePaymentSheet> {
           );
       if (mounted) {
         Navigator.of(context).pop();
-        context.showSnack(
+        AppToast.success(
           chosen.length == 1
               ? 'Pagamento registrado!'
               : '${chosen.length} parcelas quitadas!',
@@ -149,7 +150,7 @@ class _SharePaymentSheetState extends ConsumerState<SharePaymentSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        context.showSnack('Não deu para registrar: $e', isError: true);
+        AppToast.error('Não deu para registrar: $e');
       }
     }
   }
@@ -162,7 +163,7 @@ class _SharePaymentSheetState extends ConsumerState<SharePaymentSheet> {
         );
     if (mounted) {
       Navigator.of(context).pop();
-      context.showSnack('Pagamento desfeito');
+      AppToast.success('Pagamento desfeito');
     }
   }
 

@@ -12,7 +12,6 @@ class AppUser {
     required this.uid,
     required this.email,
     required this.displayName,
-    this.emoji = '🙂',
     this.createdAt,
     this.lastSeenAt,
   });
@@ -20,13 +19,12 @@ class AppUser {
   final String uid;
   final String email;
   final String displayName;
-  final String emoji;
   final DateTime? createdAt;
   final DateTime? lastSeenAt;
 
   String get shortName => displayName.trim().split(RegExp(r'\s+')).first;
 
-  /// O que o avatar mostra. O `emoji` continua salvo, mas não aparece mais.
+  /// O que o avatar mostra.
   String get initials => initialsOf(displayName.isEmpty ? nameFromEmail(email) : displayName);
 
   /// E-mails são comparados sempre em minúsculas, para "Joao@x.com" e
@@ -51,7 +49,6 @@ class AppUser {
       uid: doc.id,
       email: d['email'] as String? ?? '',
       displayName: d['displayName'] as String? ?? '',
-      emoji: d['emoji'] as String? ?? '🙂',
       createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
       lastSeenAt: (d['lastSeenAt'] as Timestamp?)?.toDate(),
     );
@@ -60,16 +57,14 @@ class AppUser {
   Map<String, dynamic> toMap() => {
         'email': normalizeEmail(email),
         'displayName': displayName,
-        'emoji': emoji,
         'createdAt': createdAt == null ? FieldValue.serverTimestamp() : Timestamp.fromDate(createdAt!),
         'lastSeenAt': FieldValue.serverTimestamp(),
       };
 
-  AppUser copyWith({String? displayName, String? emoji}) => AppUser(
+  AppUser copyWith({String? displayName}) => AppUser(
         uid: uid,
         email: email,
         displayName: displayName ?? this.displayName,
-        emoji: emoji ?? this.emoji,
         createdAt: createdAt,
         lastSeenAt: lastSeenAt,
       );

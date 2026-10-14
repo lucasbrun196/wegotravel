@@ -7,9 +7,13 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/money.dart';
 import '../../../data/models/trip.dart';
+import '../../../data/services/geocoding_service.dart';
+import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/inputs/date_range_dialog.dart';
+import '../../../shared/widgets/inputs/map_place_field.dart';
 import '../../../shared/widgets/inputs/money_field.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
+import '../../itinerary/widgets/map_picker_sheet.dart';
 
 Future<String?> showTripForm(BuildContext context, {Trip? trip}) => showAppSheet<String>(
       context: context,
@@ -36,6 +40,11 @@ class _TripFormSheetState extends ConsumerState<TripFormSheet> {
   final _budgetController = TextEditingController();
 
   DateTimeRange? _dates;
+
+  /// O ponto do destino no mapa. Como no roteiro, só vai para o banco —
+  /// a tela mostra o nome do destino.
+  double? _lat;
+  double? _lng;
   bool _saving = false;
 
   @override
@@ -45,6 +54,8 @@ class _TripFormSheetState extends ConsumerState<TripFormSheet> {
     if (trip != null) {
       _nameController.text = trip.name;
       _destinationController.text = trip.destination;
+      _lat = trip.destinationLat;
+      _lng = trip.destinationLng;
       MoneyField.setCents(_budgetController, trip.budgetCents);
       if (trip.hasDates) {
         _dates = DateTimeRange(start: trip.startDate!, end: trip.endDate!);
@@ -58,6 +69,26 @@ class _TripFormSheetState extends ConsumerState<TripFormSheet> {
     _destinationController.dispose();
     _budgetController.dispose();
     super.dispose();
+  }
+
+  PickedPlace? get _pickedPlace => (_lat == null || _lng == null)
+      ? null
+      : PickedPlace(
+          lat: _lat!,
+          lng: _lng!,
+          name: _destinationController.text.trim().isEmpty
+              ? 'Ponto escolhido no mapa'
+              : _destinationController.text.trim(),
+        );
+
+  Future<void> _pickOnMap() async {
+    final place = await showMapPicker(context, initial: _pickedPlace);
+    if (!mounted || place == null) return;
+    setState(() {
+      _lat = place.lat;
+      _lng = place.lng;
+      _destinationController.text = place.name;
+    });
   }
 
   Future<void> _pickDates() async {
@@ -82,19 +113,24 @@ class _TripFormSheetState extends ConsumerState<TripFormSheet> {
           creator: user,
           name: _nameController.text,
           destination: _destinationController.text,
+          destinationLat: _lat,
+          destinationLng: _lng,
           startDate: _dates?.start,
           endDate: _dates?.end,
           budgetCents: Money.parse(_budgetController.text),
         );
         if (mounted) {
           Navigator.of(context).pop(id);
-          context.showSnack('Viagem criada!', icon: Icons.celebration_rounded);
+          AppToast.success('Viagem criada!', icon: Icons.celebration_rounded);
         }
       } else {
         await repo.updateTrip(
           widget.trip!.copyWith(
             name: _nameController.text.trim(),
             destination: _destinationController.text.trim(),
+            destinationLat: _lat,
+            destinationLng: _lng,
+            clearDestinationCoords: _lat == null,
             startDate: _dates?.start,
             endDate: _dates?.end,
             budgetCents: Money.parse(_budgetController.text),
@@ -102,13 +138,13 @@ class _TripFormSheetState extends ConsumerState<TripFormSheet> {
         );
         if (mounted) {
           Navigator.of(context).pop(widget.trip!.id);
-          context.showSnack('Viagem atualizada');
+          AppToast.success('Viagem atualizada');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        context.showSnack('Não deu para salvar: $e', isError: true);
+        AppToast.error('Não deu para salvar: $e');
       }
     }
   }
@@ -139,9 +175,21 @@ class _TripFormSheetState extends ConsumerState<TripFormSheet> {
                         (v == null || v.trim().isEmpty) ? 'Dê um nome para a viagem' : null,
                   ),
                   Gap.vLg,
+                  MapPlaceField(
+                    hasPoint: _lat != null,
+                    placeName: _destinationController.text,
+                    onPick: _pickOnMap,
+                    onClear: () => setState(() {
+                      _lat = null;
+                      _lng = null;
+                    }),
+                  ),
+                  Gap.vMd,
                   TextFormField(
                     controller: _destinationController,
                     textCapitalization: TextCapitalization.words,
+                    // Mantém o nome do ponto marcado em dia com o campo.
+                    onChanged: (_) => setState(() {}),
                     decoration: const InputDecoration(
                       labelText: 'Destino',
                       hintText: 'Florianópolis, SC',
