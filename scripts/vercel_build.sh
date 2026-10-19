@@ -3,7 +3,7 @@
 # variáveis de ambiente e compila o app web.
 set -euo pipefail
 
-FLUTTER_VERSION="${FLUTTER_VERSION:-3.41.9}"
+FLUTTER_VERSION="${FLUTTER_VERSION:-3.47.2}"
 FLUTTER_DIR="$HOME/flutter"
 
 if [ ! -x "$FLUTTER_DIR/bin/flutter" ]; then
