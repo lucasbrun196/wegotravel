@@ -60,16 +60,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     try {
       final auth = ref.read(authServiceProvider);
-      await (_isSignUp
-          ? auth.signUp(
-              email: _emailController.text,
-              password: _passwordController.text,
-              displayName: _nameController.text,
-            )
-          : auth.signIn(
-              email: _emailController.text,
-              password: _passwordController.text,
-            ));
+      // Lido antes do `await`: a conta nasce logada, o router sai desta
+      // tela e o `ref` de um widget descartado lança.
+      final users = ref.read(userRepositoryProvider);
+      if (_isSignUp) {
+        final name = _nameController.text.trim();
+        final user = await auth.signUp(
+          email: _emailController.text,
+          password: _passwordController.text,
+          displayName: name,
+        );
+
+        // A conta nasce logada, então `currentUserProvider` cria o espelho
+        // antes de o Auth receber o nome — com o nome tirado do e-mail.
+        // Aqui o nome escolhido entra no lugar dele (a ordem entre as duas
+        // escritas é garantida pela fila do UserRepository).
+        if (name.isNotEmpty) {
+          await users.updateProfile(user.uid, displayName: name);
+        }
+      } else {
+        await auth.signIn(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+      }
 
       // Daqui não navegamos: o router observa o Firebase Auth, e o
       // espelho em `users/{uid}` é criado por currentUserProvider.
