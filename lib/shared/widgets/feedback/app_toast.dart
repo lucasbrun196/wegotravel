@@ -163,7 +163,7 @@ class _ToastCardState extends State<_ToastCard> with SingleTickerProviderStateMi
 
     return SizeTransition(
       sizeFactor: _curve,
-      axisAlignment: 1,
+      alignment: AlignmentDirectional.bottomStart,
       child: FadeTransition(
         opacity: _curve,
         child: SlideTransition(
