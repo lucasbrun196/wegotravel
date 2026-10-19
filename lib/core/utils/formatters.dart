@@ -17,6 +17,7 @@ abstract final class Fmt {
   static String dateFull(DateTime d) => DateFormat("EEEE, d 'de' MMMM", 'pt_BR').format(d);
   static String dateWithYear(DateTime d) => DateFormat("d 'de' MMM 'de' y", 'pt_BR').format(d);
   static String dateShortWithYear(DateTime d) => DateFormat('dd/MM/y', 'pt_BR').format(d);
+  static String monthYear(DateTime d) => DateFormat("MMMM 'de' y", 'pt_BR').format(d);
 
   /// Período de datas, com as duas pontas no mesmo formato.
   ///

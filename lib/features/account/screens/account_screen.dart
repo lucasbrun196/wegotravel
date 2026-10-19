@@ -7,6 +7,7 @@ import '../../../app/router.dart';
 import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../data/models/app_user.dart';
 import '../../../data/models/trip.dart';
 import '../../../data/services/auth_service.dart';
@@ -15,14 +16,19 @@ import '../../../shared/widgets/domain/member_avatar.dart';
 import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/feedback/error_banner.dart';
 import '../../../shared/widgets/feedback/loading_shimmer.dart';
+import '../../../shared/widgets/inputs/theme_mode_picker.dart';
 import '../../../shared/widgets/layout/app_page.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
-import '../../../shared/widgets/layout/section_header.dart';
 
-/// Conta da pessoa logada: perfil, senha e exclusão do cadastro.
+/// Conta da pessoa logada: perfil, senha, aparência e exclusão do cadastro.
 ///
 /// Vive fora do escopo de viagem — quem ainda não entrou em nenhuma
 /// também precisa conseguir editar o próprio nome.
+///
+/// No desktop é uma página de configurações de web: a ilustração da praia
+/// ao fundo, o perfil em destaque por cima dela e, embaixo, duas colunas —
+/// o que se ajusta à esquerda, sessão e exclusão à direita. Abaixo disso
+/// tudo empilha numa coluna só.
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
 
@@ -31,9 +37,18 @@ class AccountScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider).valueOrNull;
     final hasPassword = ref.read(authServiceProvider).hasPassword;
 
-    return AppPage(
+    final settings = [
+      _SecurityCard(user: user, hasPassword: hasPassword, onSendResetLink: _sendResetLink),
+      const _AppearanceCard(),
+    ];
+    final session = [
+      const _SessionCard(),
+      const _DangerCard(),
+    ];
+
+    final page = AppPage(
       title: 'Sua conta',
-      backgroundColor: context.theme.scaffoldBackgroundColor,
+      subtitle: 'Perfil, segurança e preferências',
       leading: IconButton(
         onPressed: () =>
             context.canPop() ? context.pop() : context.go(Routes.trips),
@@ -41,130 +56,46 @@ class AccountScreen extends ConsumerWidget {
         tooltip: 'Voltar',
       ),
       children: [
-        // ---------------- Perfil ----------------
-        SectionHeader(
-          title: 'Perfil',
-          actionLabel: user == null ? null : 'Editar',
-          onAction: user == null ? null : () => _editProfile(context, user),
-        ),
+        // Deixa a praia aparecer entre o título e o cartão de perfil.
+        SizedBox(height: context.isMobile ? 110 : 200),
         if (user == null)
-          const ShimmerBox(height: 110, borderRadius: Radii.brLg)
+          const ShimmerBox(height: 280, borderRadius: Radii.brXl)
         else
-          GlassCard(
-            child: Row(
-              children: [
-                InitialsAvatar(initials: user.initials, size: 40),
-                Gap.hLg,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        user.displayName.isEmpty
-                            ? AppUser.nameFromEmail(user.email)
-                            : user.displayName,
-                        style: context.text.titleMedium,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        user.email,
-                        style: context.text.bodySmall,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Gap.vXs,
-                      Text(
-                        hasPassword
-                            ? 'O e-mail é o login e não muda aqui.'
-                            : 'Você entra com a conta Google deste e-mail.',
-                        style: context.text.labelSmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          _ProfileHero(
+            user: user,
+            hasPassword: hasPassword,
+            onEdit: () => _editProfile(context, user),
           ),
-
-        // ---------------- Segurança ----------------
-        // Conta só do Google: não há senha para trocar nem redefinir.
-        if (hasPassword) ...[
-          Gap.vXl,
-          const SectionHeader(title: 'Segurança'),
-          GlassCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => showAppSheet(
-                    context: context,
-                    title: 'Trocar senha',
-                    subtitle: 'Confirme a senha atual para mudar',
-                    builder: (_) => const _PasswordSheet(),
-                  ),
-                  icon: const Icon(Icons.password, size: 18),
-                  label: const Text('Trocar senha'),
-                ),
-                if (user != null) ...[
-                  Gap.vSm,
-                  TextButton(
-                    onPressed: () => _sendResetLink(context, ref, user.email),
-                    child: const Text('Receber link de redefinição por e-mail'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-
-        // ---------------- Sessão ----------------
         Gap.vXl,
-        const SectionHeader(title: 'Sessão'),
-        GlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        if (context.isDesktop)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              OutlinedButton.icon(
-                onPressed: () => ref.read(authServiceProvider).signOut(),
-                icon: const Icon(Icons.logout, size: 18),
-                label: const Text('Sair da conta'),
-              ),
+              Expanded(flex: 3, child: _Stack(children: settings)),
+              Gap.hXl,
+              Expanded(flex: 2, child: _Stack(children: session)),
             ],
-          ),
-        ),
-
-        // ---------------- Zona de risco ----------------
-        Gap.vXl,
-        GlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Excluir a conta apaga seu cadastro e tira você de todas as '
-                'viagens. Não dá para desfazer.',
-                style: context.text.bodySmall,
-              ),
-              Gap.vMd,
-              OutlinedButton.icon(
-                onPressed: () => showAppSheet(
-                  context: context,
-                  title: 'Excluir sua conta',
-                  subtitle: 'Isso não pode ser desfeito',
-                  builder: (_) => const _DeleteAccountSheet(),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.danger,
-                  side: BorderSide(
-                    color: AppColors.danger.withValues(alpha: 0.4),
-                  ),
-                ),
-                icon: const Icon(Icons.person_remove_outlined, size: 18),
-                label: const Text('Excluir minha conta'),
-              ),
-            ],
-          ),
-        ),
+          )
+        else
+          _Stack(children: [...settings, ...session]),
       ],
+    );
+
+    // O fundo fica parado e a página rola por cima dele.
+    return ColoredBox(
+      color: context.theme.scaffoldBackgroundColor,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: context.isMobile ? 360 : 540,
+            child: const _Backdrop(),
+          ),
+          Positioned.fill(child: page),
+        ],
+      ),
     );
   }
 
@@ -175,7 +106,7 @@ class AccountScreen extends ConsumerWidget {
         builder: (_) => _ProfileSheet(user: user),
       );
 
-  Future<void> _sendResetLink(
+  static Future<void> _sendResetLink(
     BuildContext context,
     WidgetRef ref,
     String email,
@@ -191,6 +122,481 @@ class AccountScreen extends ConsumerWidget {
     } on AuthFailure catch (e) {
       if (context.mounted) AppToast.error(e.message);
     }
+  }
+}
+
+/// Cartões um embaixo do outro, com o respiro padrão entre eles.
+class _Stack extends StatelessWidget {
+  const _Stack({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, child) in children.indexed) ...[
+          if (i > 0) Gap.vXl,
+          child,
+        ],
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Perfil
+// ---------------------------------------------------------------------------
+
+/// O cartão de abertura: avatar grande, nome, e os números da pessoa no
+/// app.
+class _ProfileHero extends ConsumerWidget {
+  const _ProfileHero({
+    required this.user,
+    required this.hasPassword,
+    required this.onEdit,
+  });
+
+  final AppUser user;
+  final bool hasPassword;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mobile = context.isMobile;
+    final avatarSize = mobile ? 80.0 : 96.0;
+
+    final trips = ref.watch(myTripsProvider).valueOrNull;
+    final adminCount = trips?.where((t) => t.isAdmin(user.uid)).length ?? 0;
+    final name = user.displayName.isEmpty
+        ? AppUser.nameFromEmail(user.email)
+        : user.displayName;
+
+    final facts = [
+      if (trips != null)
+        _Fact(
+          icon: Icons.luggage_outlined,
+          label: switch (trips.length) {
+            0 => 'Nenhuma viagem ainda',
+            1 => '1 viagem',
+            final n => '$n viagens',
+          },
+        ),
+      if (adminCount > 0)
+        _Fact(
+          icon: Icons.star_outline_rounded,
+          label: adminCount == 1 ? 'Organiza 1' : 'Organiza $adminCount',
+        ),
+      if (user.createdAt != null)
+        _Fact(
+          icon: Icons.calendar_today_outlined,
+          label: 'Desde ${Fmt.monthYear(user.createdAt!)}',
+        ),
+      _Fact(
+        icon: hasPassword ? Icons.alternate_email_rounded : Icons.g_mobiledata_rounded,
+        label: hasPassword ? 'Entra com e-mail e senha' : 'Entra com Google',
+      ),
+    ];
+
+    final identity = Column(
+      crossAxisAlignment: mobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          name,
+          style: mobile ? context.text.headlineSmall : context.text.headlineMedium,
+          textAlign: mobile ? TextAlign.center : TextAlign.start,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Gap.vXs,
+        Text(
+          user.email,
+          style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+
+    final editButton = OutlinedButton.icon(
+      onPressed: onEdit,
+      icon: const Icon(Icons.edit_outlined, size: 18),
+      label: const Text('Editar perfil'),
+    );
+
+    final avatar = InitialsAvatar(initials: user.initials, size: avatarSize);
+
+    return GlassCard(
+      padding: EdgeInsets.all(mobile ? Gap.lg : Gap.xl),
+      borderRadius: Radii.brXl,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (mobile) ...[
+            Center(child: avatar),
+            Gap.vMd,
+            identity,
+          ] else
+            Row(
+              children: [
+                avatar,
+                Gap.hXl,
+                Expanded(child: identity),
+                Gap.hLg,
+                editButton,
+              ],
+            ),
+          Gap.vLg,
+          Wrap(
+            alignment: mobile ? WrapAlignment.center : WrapAlignment.start,
+            spacing: Gap.sm,
+            runSpacing: Gap.sm,
+            children: facts,
+          ),
+          if (mobile) ...[Gap.vLg, editButton],
+        ],
+      ),
+    );
+  }
+}
+
+/// A praia ilustrada no alto da página, que se dissolve na cor de fundo
+/// antes dos cartões de configuração. Vai espelhada: assim os coqueiros
+/// ficam à direita e o título, à esquerda, cai sobre o céu limpo. No tema
+/// escuro leva um véu da cor de fundo, senão o título claro some no céu
+/// claro. Decorativa: fica fora da árvore de acessibilidade.
+class _Backdrop extends StatelessWidget {
+  const _Backdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = context.theme.scaffoldBackgroundColor;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Transform.flip(
+          flipX: true,
+          child: Image.asset(
+            'assets/images/account_cover.jpg',
+            fit: BoxFit.cover,
+            // Puxa para baixo: o horizonte com o sol precisa sobrar acima
+            // do cartão de perfil; a areia some no esmaecido.
+            alignment: const Alignment(0, 0.6),
+            filterQuality: FilterQuality.medium,
+            excludeFromSemantics: true,
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0, 0.6, 1],
+              colors: [
+                bg.withValues(alpha: context.isDark ? 0.55 : 0),
+                bg.withValues(alpha: context.isDark ? 0.6 : 0.05),
+                bg,
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Uma pílula com ícone: "3 viagens", "Desde março de 2025".
+class _Fact extends StatelessWidget {
+  const _Fact({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: 6),
+      decoration: BoxDecoration(
+        color: context.isDark ? AppColors.darkChip : AppColors.chip,
+        borderRadius: Radii.brPill,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: context.colors.onSurfaceVariant),
+          Gap.hXs,
+          Text(label, style: context.text.labelMedium),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cartões de configuração
+// ---------------------------------------------------------------------------
+
+/// Um grupo de configurações: título e linha de apoio no topo, e as
+/// linhas separadas por divisórias — o formato das páginas de
+/// configuração na web.
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({
+    required this.title,
+    required this.subtitle,
+    required this.children,
+    this.danger = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  /// Tinge a borda e o título de vermelho: a zona de risco.
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      padding: EdgeInsets.zero,
+      borderColor: danger ? AppColors.danger.withValues(alpha: 0.35) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xl, Gap.xl, Gap.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: context.text.titleMedium?.copyWith(
+                    color: danger ? AppColors.danger : null,
+                  ),
+                ),
+                Gap.vXs,
+                Text(subtitle, style: context.text.bodySmall),
+              ],
+            ),
+          ),
+          for (final child in children) ...[
+            const Divider(height: 1),
+            child,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Ícone, título, explicação e a ação à direita. No celular a ação desce
+/// para baixo do texto: lado a lado o texto ficaria espremido.
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.action,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final Widget? action;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final mobile = context.isMobile;
+    final tint = danger ? AppColors.danger : context.colors.primary;
+
+    final iconTile = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: context.isDark ? 0.18 : 0.10),
+        borderRadius: Radii.brMd,
+      ),
+      child: Icon(icon, size: 20, color: tint),
+    );
+
+    final text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(title, style: context.text.titleSmall),
+        Gap.vXs,
+        Text(description, style: context.text.bodySmall),
+      ],
+    );
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: mobile ? Gap.lg : Gap.xl,
+        vertical: Gap.lg,
+      ),
+      child: mobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [iconTile, Gap.hMd, Expanded(child: text)],
+                ),
+                if (action != null) ...[Gap.vMd, action!],
+              ],
+            )
+          : Row(
+              children: [
+                iconTile,
+                Gap.hLg,
+                Expanded(child: text),
+                if (action != null) ...[Gap.hXl, action!],
+              ],
+            ),
+    );
+  }
+}
+
+class _SecurityCard extends ConsumerWidget {
+  const _SecurityCard({
+    required this.user,
+    required this.hasPassword,
+    required this.onSendResetLink,
+  });
+
+  final AppUser? user;
+  final bool hasPassword;
+  final Future<void> Function(BuildContext, WidgetRef, String) onSendResetLink;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final email = user?.email;
+
+    return _SettingsCard(
+      title: 'Segurança',
+      subtitle: hasPassword
+          ? 'Você entra com o seu e-mail, que não muda por aqui'
+          : 'Como você entra no app',
+      children: [
+        // Conta só do Google: não há senha para trocar nem redefinir.
+        if (!hasPassword)
+          const _SettingsRow(
+            icon: Icons.verified_user_outlined,
+            title: 'Conta Google',
+            description: 'Você entra com a conta Google deste e-mail. '
+                'A senha é cuidada pelo Google.',
+          )
+        else ...[
+          _SettingsRow(
+            icon: Icons.password_rounded,
+            title: 'Senha',
+            description: 'Confirme a senha atual para escolher uma nova.',
+            action: OutlinedButton(
+              onPressed: () => showAppSheet(
+                context: context,
+                title: 'Trocar senha',
+                subtitle: 'Confirme a senha atual para mudar',
+                builder: (_) => const _PasswordSheet(),
+              ),
+              child: const Text('Trocar senha'),
+            ),
+          ),
+          if (email != null)
+            _SettingsRow(
+              icon: Icons.mark_email_unread_outlined,
+              title: 'Esqueceu a senha?',
+              description: 'Receba no seu e-mail um link para criar uma senha nova.',
+              action: TextButton(
+                onPressed: () => onSendResetLink(context, ref, email),
+                child: const Text('Enviar link'),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _AppearanceCard extends ConsumerWidget {
+  const _AppearanceCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _SettingsCard(
+      title: 'Aparência',
+      subtitle: 'Vale só para este aparelho',
+      children: [
+        _SettingsRow(
+          icon: Icons.palette_outlined,
+          title: 'Tema',
+          description: '"Sistema" acompanha o claro ou escuro do aparelho.',
+          action: ThemeModePicker(
+            value: ref.watch(themeModeProvider),
+            onChanged: ref.read(themeModeProvider.notifier).set,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SessionCard extends ConsumerWidget {
+  const _SessionCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _SettingsCard(
+      title: 'Sessão',
+      subtitle: 'Este navegador',
+      children: [
+        _SettingsRow(
+          icon: Icons.logout_rounded,
+          title: 'Sair da conta',
+          description: 'Suas viagens continuam salvas. É só entrar de novo.',
+          action: OutlinedButton(
+            onPressed: () => ref.read(authServiceProvider).signOut(),
+            child: const Text('Sair'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DangerCard extends StatelessWidget {
+  const _DangerCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsCard(
+      title: 'Zona de risco',
+      subtitle: 'Não dá para desfazer',
+      danger: true,
+      children: [
+        _SettingsRow(
+          icon: Icons.person_remove_outlined,
+          title: 'Excluir minha conta',
+          description: 'Apaga seu cadastro e tira você de todas as viagens.',
+          danger: true,
+          action: OutlinedButton(
+            onPressed: () => showAppSheet(
+              context: context,
+              title: 'Excluir sua conta',
+              subtitle: 'Isso não pode ser desfeito',
+              builder: (_) => const _DeleteAccountSheet(),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.danger,
+              side: BorderSide(color: AppColors.danger.withValues(alpha: 0.4)),
+            ),
+            child: const Text('Excluir conta'),
+          ),
+        ),
+      ],
+    );
   }
 }
 
