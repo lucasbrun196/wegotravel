@@ -15,6 +15,7 @@ import '../../../shared/widgets/cards/glass_card.dart';
 import '../../../shared/widgets/domain/member_avatar.dart';
 import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/feedback/loading_shimmer.dart';
+import '../../../shared/widgets/inputs/theme_mode_picker.dart';
 import '../../../shared/widgets/layout/app_page.dart';
 import '../../../shared/widgets/layout/app_sheet.dart';
 import '../../../shared/widgets/layout/section_header.dart';
@@ -550,36 +551,12 @@ class _Tag extends StatelessWidget {
   }
 }
 
-/// Sistema, claro ou escuro. O botão sol/lua da barra só alterna entre os
-/// dois últimos; voltar a seguir o sistema é por aqui.
 class _ThemePicker extends ConsumerWidget {
   const _ThemePicker();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(themeModeProvider);
-
-    return SegmentedButton<ThemeMode>(
-      showSelectedIcon: false,
-      segments: const [
-        ButtonSegment(
-          value: ThemeMode.system,
-          label: Text('Sistema'),
-          icon: Icon(Icons.brightness_auto_outlined, size: 16),
-        ),
-        ButtonSegment(
-          value: ThemeMode.light,
-          label: Text('Claro'),
-          icon: Icon(Icons.light_mode_outlined, size: 16),
-        ),
-        ButtonSegment(
-          value: ThemeMode.dark,
-          label: Text('Escuro'),
-          icon: Icon(Icons.dark_mode_outlined, size: 16),
-        ),
-      ],
-      selected: {mode},
-      onSelectionChanged: (s) => ref.read(themeModeProvider.notifier).set(s.first),
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) => ThemeModePicker(
+        value: ref.watch(themeModeProvider),
+        onChanged: ref.read(themeModeProvider.notifier).set,
+      );
 }
