@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vacation_itinerary/app/providers.dart';
-import 'package:vacation_itinerary/data/services/sync_status_service.dart';
-import 'package:vacation_itinerary/shared/widgets/feedback/sync_banner.dart';
+import 'package:we_go_travel/app/providers.dart';
+import 'package:we_go_travel/data/services/sync_status_service.dart';
+import 'package:we_go_travel/shared/widgets/feedback/sync_banner.dart';
 
 /// Monta o aviso com um estado fixo, sem Firebase no caminho.
 Widget app(Stream<SyncStatus> status) => ProviderScope(

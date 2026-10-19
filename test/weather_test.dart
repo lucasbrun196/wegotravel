@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:vacation_itinerary/data/models/trip.dart';
-import 'package:vacation_itinerary/data/models/weather.dart';
-import 'package:vacation_itinerary/data/services/weather_service.dart';
+import 'package:we_go_travel/data/models/trip.dart';
+import 'package:we_go_travel/data/models/weather.dart';
+import 'package:we_go_travel/data/services/weather_service.dart';
 
 Trip viagem({DateTime? inicio, DateTime? fim}) => Trip(
       id: 'viagem',

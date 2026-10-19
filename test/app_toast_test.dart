@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vacation_itinerary/core/theme/app_colors.dart';
-import 'package:vacation_itinerary/shared/widgets/feedback/app_toast.dart';
+import 'package:we_go_travel/core/theme/app_colors.dart';
+import 'package:we_go_travel/shared/widgets/feedback/app_toast.dart';
 
 Widget app() => MaterialApp(
       builder: (context, child) => ToastHost(child: child!),

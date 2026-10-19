@@ -1,4 +1,4 @@
-package com.viagem.vacation_itinerary
+package com.viagem.wegotravel
 
 import io.flutter.embedding.android.FlutterActivity
 

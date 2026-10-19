@@ -1,4 +1,4 @@
-name: vacation_itinerary
+name: we_go_travel
 description: "WeGoTravel: roteiro, contas e mural de viagem compartilhada."
 publish_to: 'none'
 version: 0.1.0+1

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vacation_itinerary/app/auth_action_link.dart';
+import 'package:we_go_travel/app/auth_action_link.dart';
 
 void main() {
   group('AuthActionLink', () {
