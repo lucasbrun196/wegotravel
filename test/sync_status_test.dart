@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vacation_itinerary/data/services/sync_status_service.dart';
+import 'package:we_go_travel/data/services/sync_status_service.dart';
 
 SyncMetadata meta({bool cache = false, bool pending = false}) =>
     SyncMetadata(isFromCache: cache, hasPendingWrites: pending);

@@ -44,7 +44,7 @@ abstract final class MapConfig {
       '/tiles/256/{z}/{x}/{y}{r}?access_token=$token';
 
   /// Identifica o app para o Mapbox e para o Nominatim.
-  static const userAgent = 'com.lucasbrun.vacation_itinerary';
+  static const userAgent = 'com.viagem.wegotravel';
 
   /// Onde o mapa abre quando não há nenhuma pista de lugar: Brasil
   /// inteiro, para a pessoa navegar até onde quiser.

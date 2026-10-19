@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vacation_itinerary/data/models/itinerary_enums.dart';
-import 'package:vacation_itinerary/data/models/itinerary_item.dart';
-import 'package:vacation_itinerary/data/services/geocoding_service.dart';
+import 'package:we_go_travel/data/models/itinerary_enums.dart';
+import 'package:we_go_travel/data/models/itinerary_item.dart';
+import 'package:we_go_travel/data/services/geocoding_service.dart';
 
 ItineraryItem item(
   String title, {

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vacation_itinerary/core/utils/money.dart';
-import 'package:vacation_itinerary/data/models/bill.dart';
-import 'package:vacation_itinerary/data/models/enums.dart';
+import 'package:we_go_travel/core/utils/money.dart';
+import 'package:we_go_travel/data/models/bill.dart';
+import 'package:we_go_travel/data/models/enums.dart';
 
 /// NumberFormat separa o símbolo do valor com espaço não separável
 /// (U+00A0). Normalizamos para o teste ficar legível.

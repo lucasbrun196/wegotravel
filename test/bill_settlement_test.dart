@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vacation_itinerary/data/models/bill.dart';
-import 'package:vacation_itinerary/data/models/bill_entry.dart';
-import 'package:vacation_itinerary/data/models/bill_settlement.dart';
-import 'package:vacation_itinerary/data/models/enums.dart';
+import 'package:we_go_travel/data/models/bill.dart';
+import 'package:we_go_travel/data/models/bill_entry.dart';
+import 'package:we_go_travel/data/models/bill_settlement.dart';
+import 'package:we_go_travel/data/models/enums.dart';
 
 void main() {
   // Gasolina entre 4, e cada abastecimento bancado por quem estava com o

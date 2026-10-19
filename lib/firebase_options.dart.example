@@ -71,6 +71,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: 'SEU_SENDER_ID',
     projectId: 'SEU_PROJECT_ID',
     storageBucket: 'SEU_PROJECT_ID.firebasestorage.app',
-    iosBundleId: 'com.viagem.vacationItinerary',
+    iosBundleId: 'com.viagem.wegotravel',
   );
 }
