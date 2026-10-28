@@ -18,14 +18,17 @@ import 'itinerary_chip.dart';
 import 'itinerary_form_sheet.dart';
 import 'weather_chip.dart';
 
-/// Abaixo desta largura a categoria e o transporte saem das colunas
-/// próprias e viram texto embaixo do título.
+/// Abaixo desta largura o cabeçalho das colunas some.
 const _tableBreakpoint = 560.0;
 
 /// Uma atividade como linha de tabela: hora em mono na coluna da esquerda,
-/// atividade no meio, categoria e transporte em colunas à direita, e o
-/// menu de status na ponta. Embaixo do título vêm o endereço e as
-/// etiquetas (previsão, contas ligadas, link).
+/// atividade no meio e o menu de status na ponta. Embaixo do título vêm o
+/// endereço, as categorias e o trajeto em etiquetas, e por fim as etiquetas
+/// extras (previsão, contas ligadas, link).
+///
+/// Categoria e transporte já tiveram colunas próprias, de largura fixa: com
+/// mais de um valor viravam "Passeio, Jantar, R…". Em etiquetas eles
+/// quebram linha em vez de cortar, e cada um tem o seu ícone.
 class ItineraryRow extends ConsumerWidget {
   const ItineraryRow({super.key, required this.item});
 
@@ -51,128 +54,154 @@ class ItineraryRow extends ConsumerWidget {
     ];
     final hasLink = item.link != null && item.link!.isNotEmpty;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= _tableBreakpoint;
+    final place = [
+      item.placeName,
+      item.address,
+    ].where((s) => s != null && s.isNotEmpty).join(' · ');
 
-        final place = [
-          item.placeName,
-          item.address,
-        ].where((s) => s != null && s.isNotEmpty).join(' · ');
+    final tags = <Widget>[
+      // Só entra na lista quando pode aparecer: o botão se esconde sozinho,
+      // mas um widget vazio ainda ocuparia o `spacing` e empurraria as
+      // outras etiquetas para a direita. Sobra o caso do dia fora do
+      // horizonte da previsão, que só se sabe depois do pedido.
+      if (item.hasCoords && ref.watch(weatherWindowOpenProvider)) WeatherChip(item: item),
+      for (final bill in linkedBills)
+        ItineraryChip(
+          label: '${bill.title} · ${Money.formatCompact(bill.chargedTotalCents)}',
+          icon: Icons.receipt_long_outlined,
+          color: AppColors.sunset,
+        ),
+      if (hasLink) _LinkChip(url: item.link!),
+    ];
 
-        final subtitle = wide
-            ? place
-            : [
-                if (place.isNotEmpty) place,
-                item.categoriesLabel,
-                ?item.transportsLabel,
-              ].join(' · ');
-
-        final tags = <Widget>[
-          // Só entra na lista quando há coordenada: o botão se esconde
-          // sozinho, mas um widget vazio ainda ocuparia o `spacing`.
-          if (item.hasCoords) WeatherChip(item: item),
-          for (final bill in linkedBills)
-            ItineraryChip(
-              label: '${bill.title} · ${Money.formatCompact(bill.chargedTotalCents)}',
-              icon: Icons.receipt_long_outlined,
-              color: AppColors.sunset,
+    return InkWell(
+      onTap: () => showItineraryForm(context, item: item),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.md, Gap.xs, Gap.md),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 52, child: _TimeColumn(item: item, faded: faded)),
+            CategoryBadge(
+              icon: item.category.icon,
+              color: item.category.color,
+              size: 32,
+              faded: faded,
             ),
-          if (hasLink) _LinkChip(url: item.link!),
-        ];
-
-        return InkWell(
-          onTap: () => showItineraryForm(context, item: item),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.md, Gap.xs, Gap.md),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(width: 52, child: _TimeColumn(item: item, faded: faded)),
-                CategoryBadge(
-                  icon: item.category.icon,
-                  color: item.category.color,
-                  size: 32,
-                  faded: faded,
-                ),
-                Gap.hMd,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            Gap.hMd,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              item.title,
-                              style: context.text.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                color: faded ? muted : null,
-                                decoration: cancelled ? TextDecoration.lineThrough : null,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      Flexible(
+                        child: Text(
+                          item.title,
+                          style: context.text.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: faded ? muted : null,
+                            decoration: cancelled ? TextDecoration.lineThrough : null,
                           ),
-                          if (done) ...[
-                            Gap.hXs,
-                            Icon(Icons.check, size: 14, color: context.success),
-                          ],
-                        ],
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      if (subtitle.isNotEmpty)
-                        Text(
-                          subtitle,
-                          style: context.text.bodySmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      if (tags.isNotEmpty) ...[
-                        Gap.vSm,
-                        Wrap(spacing: 6, runSpacing: 6, children: tags),
-                      ],
-                      if (item.notes != null && item.notes!.isNotEmpty) ...[
-                        Gap.vXs,
-                        Text(
-                          item.notes!,
-                          style: context.text.bodySmall?.copyWith(color: AppColors.inkFaint),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      if (done) ...[
+                        Gap.hXs,
+                        Icon(Icons.check, size: 14, color: context.success),
                       ],
                     ],
                   ),
-                ),
-                if (wide) ...[
-                  Gap.hMd,
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      item.categoriesLabel,
-                      style: context.text.bodySmall?.copyWith(
-                        color: faded ? null : item.category.color,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 104,
-                    child: Text(
-                      item.transportsLabel ?? '—',
+                  if (place.isNotEmpty)
+                    Text(
+                      place,
                       style: context.text.bodySmall,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  Gap.vSm,
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (final c in item.categories)
+                        ItineraryChip(
+                          label: c.label,
+                          icon: c.icon,
+                          color: faded ? null : c.color,
+                        ),
+                      if (item.transports.isNotEmpty) _TransportRoute(transports: item.transports),
+                    ],
                   ),
+                  if (tags.isNotEmpty) ...[
+                    Gap.vSm,
+                    Wrap(spacing: 6, runSpacing: 6, children: tags),
+                  ],
+                  if (item.notes != null && item.notes!.isNotEmpty) ...[
+                    Gap.vSm,
+                    Text(
+                      item.notes!,
+                      style: context.text.bodySmall?.copyWith(color: AppColors.inkFaint),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
-                _StatusButton(item: item),
-              ],
+              ),
             ),
-          ),
-        );
-      },
+            _StatusButton(item: item),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+/// Como a turma chega, lido como um trajeto: "Carro → Barco". Pílula neutra,
+/// para não competir com as categorias, que têm cor. Por dentro é um
+/// `Wrap`: num celular estreito o trajeto quebra linha em vez de estourar.
+class _TransportRoute extends StatelessWidget {
+  const _TransportRoute({required this.transports});
+
+  final List<TransportMode> transports;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = context.colors.onSurfaceVariant;
+    final style = context.text.labelSmall?.copyWith(color: fg, fontWeight: FontWeight.w600);
+
+    return Tooltip(
+      message: transports.length == 1 ? 'Transporte' : 'Trajeto, na ordem',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: 3),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: Radii.brPill,
+          border: Border.all(color: context.colors.outline),
+        ),
+        child: Wrap(
+          spacing: Gap.xs,
+          runSpacing: 2,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (final (i, mode) in transports.indexed) ...[
+              if (i > 0)
+                Icon(Icons.arrow_forward_rounded, size: 11, color: fg.withValues(alpha: 0.6)),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(mode.icon, size: 12, color: fg),
+                  const SizedBox(width: 3),
+                  Text(mode.label, style: style),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -254,9 +283,6 @@ class ItineraryTableHeader extends StatelessWidget {
                   // A largura do selo de categoria e do espaço depois dele.
                   const SizedBox(width: 44),
                   Expanded(child: Text('Atividade', style: style)),
-                  Gap.hMd,
-                  SizedBox(width: 120, child: Text('Categoria', style: style)),
-                  SizedBox(width: 104, child: Text('Transporte', style: style)),
                   // A largura do botão de menu das linhas.
                   const SizedBox(width: 40),
                 ],
