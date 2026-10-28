@@ -23,16 +23,13 @@ import 'weather_chip.dart';
 const _tableBreakpoint = 560.0;
 
 /// Uma atividade como linha de tabela: hora em mono na coluna da esquerda,
-/// atividade no meio, categoria e transporte em colunas à direita.
-///
-/// A versão [detailed] é a do Roteiro: tem o menu de status, o endereço e
-/// as etiquetas (previsão, contas ligadas, link). A outra é a do Resumo,
-/// só para ler.
+/// atividade no meio, categoria e transporte em colunas à direita, e o
+/// menu de status na ponta. Embaixo do título vêm o endereço e as
+/// etiquetas (previsão, contas ligadas, link).
 class ItineraryRow extends ConsumerWidget {
-  const ItineraryRow({super.key, required this.item, this.detailed = true});
+  const ItineraryRow({super.key, required this.item});
 
   final ItineraryItem item;
-  final bool detailed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,7 +40,7 @@ class ItineraryRow extends ConsumerWidget {
 
     // Na ordem em que as contas foram ligadas, e sem as que já foram
     // apagadas em Contas.
-    final bills = detailed && item.isLinkedToBill
+    final bills = item.isLinkedToBill
         ? {
             for (final b in ref.watch(billsProvider).valueOrNull ?? const <Bill>[]) b.id: b,
           }
@@ -60,7 +57,7 @@ class ItineraryRow extends ConsumerWidget {
 
         final place = [
           item.placeName,
-          if (detailed) item.address,
+          item.address,
         ].where((s) => s != null && s.isNotEmpty).join(' · ');
 
         final subtitle = wide
@@ -74,20 +71,20 @@ class ItineraryRow extends ConsumerWidget {
         final tags = <Widget>[
           // Só entra na lista quando há coordenada: o botão se esconde
           // sozinho, mas um widget vazio ainda ocuparia o `spacing`.
-          if (detailed && item.hasCoords) WeatherChip(item: item),
+          if (item.hasCoords) WeatherChip(item: item),
           for (final bill in linkedBills)
             ItineraryChip(
               label: '${bill.title} · ${Money.formatCompact(bill.chargedTotalCents)}',
               icon: Icons.receipt_long_outlined,
               color: AppColors.sunset,
             ),
-          if (detailed && hasLink) _LinkChip(url: item.link!),
+          if (hasLink) _LinkChip(url: item.link!),
         ];
 
         return InkWell(
           onTap: () => showItineraryForm(context, item: item),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(Gap.lg, Gap.md, detailed ? Gap.xs : Gap.lg, Gap.md),
+            padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.md, Gap.xs, Gap.md),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -143,7 +140,7 @@ class ItineraryRow extends ConsumerWidget {
                         Gap.vSm,
                         Wrap(spacing: 6, runSpacing: 6, children: tags),
                       ],
-                      if (detailed && item.notes != null && item.notes!.isNotEmpty) ...[
+                      if (item.notes != null && item.notes!.isNotEmpty) ...[
                         Gap.vXs,
                         Text(
                           item.notes!,
@@ -179,7 +176,7 @@ class ItineraryRow extends ConsumerWidget {
                     ),
                   ),
                 ],
-                if (detailed) _StatusButton(item: item),
+                _StatusButton(item: item),
               ],
             ),
           ),
@@ -191,9 +188,7 @@ class ItineraryRow extends ConsumerWidget {
 
 /// O cabeçalho das colunas, para quando a tabela tem largura para elas.
 class ItineraryTableHeader extends StatelessWidget {
-  const ItineraryTableHeader({super.key, this.detailed = true});
-
-  final bool detailed;
+  const ItineraryTableHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +201,7 @@ class ItineraryTableHeader extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(Gap.lg, Gap.sm, detailed ? Gap.xs : Gap.lg, Gap.sm),
+              padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.xs, Gap.sm),
               child: Row(
                 children: [
                   SizedBox(width: 52, child: Text('Hora', style: style)),
@@ -217,7 +212,7 @@ class ItineraryTableHeader extends StatelessWidget {
                   SizedBox(width: 120, child: Text('Categoria', style: style)),
                   SizedBox(width: 104, child: Text('Transporte', style: style)),
                   // A largura do botão de menu das linhas.
-                  if (detailed) const SizedBox(width: 40),
+                  const SizedBox(width: 40),
                 ],
               ),
             ),
