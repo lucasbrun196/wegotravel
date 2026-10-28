@@ -88,16 +88,7 @@ class ItineraryRow extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 52,
-                  child: Text(
-                    item.hasTime ? Fmt.time(item.startAt!) : '—',
-                    style: AppTypography.mono(
-                      size: 13,
-                      color: faded ? AppColors.inkFaint : context.colors.onSurface,
-                    ).copyWith(height: 2.2),
-                  ),
-                ),
+                SizedBox(width: 52, child: _TimeColumn(item: item, faded: faded)),
                 CategoryBadge(
                   icon: item.category.icon,
                   color: item.category.color,
@@ -182,6 +173,61 @@ class ItineraryRow extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// A hora de início e, quando há, a de fim embaixo, ligadas por um traço
+/// vertical — "das 05:30 às 07:00" lido de cima para baixo. O fim vem num
+/// tom mais apagado, para o olho pegar o começo primeiro.
+class _TimeColumn extends StatelessWidget {
+  const _TimeColumn({required this.item, required this.faded});
+
+  final ItineraryItem item;
+  final bool faded;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = item.startAt;
+    final end = item.endAt;
+    final strong = faded ? AppColors.inkFaint : context.colors.onSurface;
+    final soft = faded ? AppColors.inkFaint : context.colors.onSurfaceVariant;
+
+    final startStyle = AppTypography.mono(size: 13, color: strong);
+    if (start == null || end == null || end == start) {
+      // A altura de linha centraliza a hora com o selo de categoria (32px).
+      return Text(
+        start == null ? '—' : Fmt.time(start),
+        style: startStyle.copyWith(height: 2.2),
+      );
+    }
+
+    // Mesma posição da hora sozinha, mas com o espaço todo em cima: embaixo
+    // ela encosta no traço. A coluna fica da largura do texto, então o traço
+    // cai no meio dele.
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(Fmt.time(start), style: startStyle.copyWith(height: 1.3)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Container(
+              width: 1.5,
+              height: 14,
+              decoration: BoxDecoration(
+                color: soft.withValues(alpha: 0.4),
+                borderRadius: Radii.brPill,
+              ),
+            ),
+          ),
+          Text(Fmt.time(end), style: AppTypography.mono(size: 12, color: soft)),
+        ],
+      ),
     );
   }
 }
