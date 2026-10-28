@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'attachment.dart';
+import 'bill.dart';
 
 /// Um lançamento dentro de uma conta aberta.
 ///
@@ -15,6 +16,7 @@ class BillEntry {
     required this.amountCents,
     required this.date,
     this.paidByMemberId,
+    this.participantIds = const [],
     this.receipts = const [],
     this.notes,
     this.createdAt,
@@ -30,6 +32,26 @@ class BillEntry {
   /// carro, no caso da gasolina), mas nada impede que varie.
   final String? paidByMemberId;
 
+  /// Quem divide este lançamento — a compra do mercado que só dois
+  /// comeram. **Vazia quer dizer todos os participantes da conta**: é o
+  /// caso comum, é como os lançamentos antigos chegam, e acompanha a conta
+  /// se alguém entrar nela depois.
+  final List<String> participantIds;
+
+  bool get isSplitByAll => participantIds.isEmpty;
+
+  /// Entre quem o valor é dividido de fato, na ordem dos participantes da
+  /// conta — é essa ordem que decide quem leva o centavo de resto.
+  List<String> splitAmong(Bill bill) {
+    final all = bill.participantIds.isEmpty ? [?bill.paidByMemberId] : bill.participantIds;
+    if (isSplitByAll) return all;
+    return [
+      ...all.where(participantIds.contains),
+      // Quem saiu da conta depois de entrar no lançamento continua nele.
+      ...participantIds.where((id) => !all.contains(id)),
+    ];
+  }
+
   final List<Attachment> receipts;
   final String? notes;
   final DateTime? createdAt;
@@ -43,6 +65,7 @@ class BillEntry {
       amountCents: (d['amountCents'] as num?)?.toInt() ?? 0,
       date: (d['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       paidByMemberId: d['paidByMemberId'] as String?,
+      participantIds: (d['participantIds'] as List<dynamic>? ?? []).whereType<String>().toList(),
       receipts: (d['receipts'] as List<dynamic>? ?? [])
           .map((e) => Attachment.fromMap(Map<String, dynamic>.from(e as Map)))
           .toList(),
@@ -57,6 +80,7 @@ class BillEntry {
         'amountCents': amountCents,
         'date': Timestamp.fromDate(date),
         'paidByMemberId': paidByMemberId,
+        'participantIds': participantIds,
         'receipts': receipts.map((r) => r.toMap()).toList(),
         'notes': notes,
         'createdAt': createdAt == null ? FieldValue.serverTimestamp() : Timestamp.fromDate(createdAt!),
@@ -67,6 +91,7 @@ class BillEntry {
     int? amountCents,
     DateTime? date,
     String? paidByMemberId,
+    List<String>? participantIds,
     List<Attachment>? receipts,
     String? notes,
   }) =>
@@ -77,6 +102,7 @@ class BillEntry {
         amountCents: amountCents ?? this.amountCents,
         date: date ?? this.date,
         paidByMemberId: paidByMemberId ?? this.paidByMemberId,
+        participantIds: participantIds ?? this.participantIds,
         receipts: receipts ?? this.receipts,
         notes: notes ?? this.notes,
         createdAt: createdAt,
