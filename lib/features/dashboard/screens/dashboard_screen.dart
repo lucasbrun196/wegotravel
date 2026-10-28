@@ -25,6 +25,7 @@ import '../../../shared/widgets/layout/section_header.dart';
 import '../../../shared/widgets/layout/stat_strip.dart';
 import '../../expenses/controllers/money_controllers.dart';
 import '../../expenses/widgets/bill_form_sheet.dart';
+import '../../itinerary/widgets/itinerary_details_sheet.dart';
 import '../../itinerary/widgets/itinerary_form_sheet.dart';
 
 /// A partir desta largura o roteiro e o acerto ficam lado a lado.
@@ -330,7 +331,7 @@ class _NextUp extends StatelessWidget {
         ),
       ),
       child: InkWell(
-        onTap: () => showItineraryForm(context, item: item),
+        onTap: () => showItineraryDetails(context, item: item),
         child: Padding(
           padding: const EdgeInsets.all(Gap.lg),
           child: Row(
