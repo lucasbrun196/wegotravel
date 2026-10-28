@@ -318,13 +318,12 @@ class _PayerSelector extends ConsumerWidget {
       runSpacing: Gap.sm,
       children: [
         for (final member in ordered)
+          // O `MemberChip` já marca o escolhido com um check animado; um
+          // rádio ao lado dele repetia a mesma informação.
           MemberChip(
             member: member,
             selected: member.id == selected,
             onTap: () => onSelect(member.id),
-            trailing: member.id == selected
-                ? Icon(Icons.radio_button_checked_rounded, size: 15, color: member.color)
-                : null,
           ),
       ],
     );
