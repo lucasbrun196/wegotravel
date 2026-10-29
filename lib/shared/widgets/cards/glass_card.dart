@@ -70,20 +70,23 @@ class _GlassCardState extends State<GlassCard> {
                     : AppColors.softShadow,
       ),
       // O `Material` é filho do container para o realce do toque ficar
-      // **por cima** do fundo do cartão.
-      child: interactive
-          ? Material(
-              type: MaterialType.transparency,
-              borderRadius: widget.borderRadius,
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
+      // **por cima** do fundo do cartão — o do cartão inteiro e o das linhas
+      // clicáveis dentro dele. Sem ele, o `InkWell` de uma linha pinta no
+      // `Material` da página, por baixo do cartão, e o realce só aparece nos
+      // cantos arredondados, como uma sombra quadrada vazando.
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: widget.borderRadius,
+        clipBehavior: Clip.antiAlias,
+        child: interactive
+            ? InkWell(
                 borderRadius: widget.borderRadius,
                 onTap: widget.onTap,
                 onHighlightChanged: (v) => setState(() => _pressed = v),
                 child: Padding(padding: widget.padding, child: widget.child),
-              ),
-            )
-          : Padding(padding: widget.padding, child: widget.child),
+              )
+            : Padding(padding: widget.padding, child: widget.child),
+      ),
     );
 
     if (!interactive) return content;

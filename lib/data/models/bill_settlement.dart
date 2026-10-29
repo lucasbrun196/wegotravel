@@ -19,10 +19,11 @@ class SettlementTransfer {
 
 /// O acerto de uma conta aberta em que cada lançamento pode ter sido
 /// bancado por uma pessoa diferente — a gasolina que cada um pagou numa
-/// parada.
+/// parada — e dividido só entre algumas — a compra do mercado que só dois
+/// comeram.
 ///
 /// Cada pessoa tem o que **pagou** (soma dos lançamentos que bancou) e a
-/// sua **parte** (o total dividido entre os participantes). Quem pagou
+/// sua **parte** (cada lançamento dividido entre quem o divide). Quem pagou
 /// mais que a parte recebe; quem pagou menos transfere. As transferências
 /// saem do casamento guloso entre o maior devedor e o maior credor, o que
 /// dá no máximo uma a menos que o número de pessoas.
@@ -41,6 +42,12 @@ class BillSettlement {
   factory BillSettlement.of(Bill bill, List<BillEntry> entries) {
     final paid = <String, int>{};
     var total = 0;
+
+    // Os lançamentos se agrupam por quem os divide, e cada grupo é somado
+    // antes de dividir: a divisão de cada lançamento em separado jogaria o
+    // centavo de resto sempre na mesma pessoa. Com todos divididos por
+    // todos, sobra um grupo só — a conta inteira dividida uma vez.
+    final groups = <String, (List<String>, int)>{};
     for (final entry in entries) {
       total += entry.amountCents;
       // Lançamento antigo, de antes de cada um ter pagador, fica com quem
@@ -48,28 +55,41 @@ class BillSettlement {
       // cada um, mas não gera transferência para ninguém.
       final payer = entry.paidByMemberId ?? bill.paidByMemberId;
       if (payer != null) paid[payer] = (paid[payer] ?? 0) + entry.amountCents;
+
+      final among = entry.splitAmong(bill);
+      final key = among.join('|');
+      final (_, sum) = groups[key] ?? (among, 0);
+      groups[key] = (among, sum + entry.amountCents);
+    }
+
+    final custom = bill.splitMode == SplitMode.custom && bill.customWeights.isNotEmpty;
+    final owed = <String, int>{};
+    for (final (among, sum) in groups.values) {
+      if (among.isEmpty) continue;
+      final parts = custom
+          ? Money.divideByWeights(sum, among.map((m) => bill.customWeights[m] ?? 1).toList())
+          : Money.divide(sum, among.length);
+      for (var i = 0; i < among.length; i++) {
+        owed[among[i]] = (owed[among[i]] ?? 0) + parts[i];
+      }
     }
 
     final participants = bill.participantIds.isEmpty
         ? [?bill.paidByMemberId]
         : bill.participantIds;
 
-    final parts = participants.isEmpty
-        ? const <int>[]
-        : bill.splitMode == SplitMode.custom && bill.customWeights.isNotEmpty
-            ? Money.divideByWeights(
-                total,
-                participants.map((m) => bill.customWeights[m] ?? 1).toList(),
-              )
-            : Money.divide(total, participants.length);
-    final owed = {for (var i = 0; i < participants.length; i++) participants[i]: parts[i]};
-
-    // Participantes primeiro, na ordem da conta; depois quem pagou algo
-    // sem entrar na divisão.
+    // Participantes primeiro, na ordem da conta; depois quem só aparece
+    // num lançamento ou só pagou algo sem entrar na divisão.
     final memberIds = [
       ...participants,
-      ...paid.keys.where((id) => !owed.containsKey(id)),
+      ...owed.keys.where((id) => !participants.contains(id)),
+      ...paid.keys.where((id) => !participants.contains(id) && !owed.containsKey(id)),
     ];
+    // Quem divide a conta mas ficou de fora de todos os lançamentos não
+    // deve nada — e ainda aparece no acerto, com zero.
+    for (final id in participants) {
+      owed.putIfAbsent(id, () => 0);
+    }
 
     return BillSettlement._(
       totalCents: total,

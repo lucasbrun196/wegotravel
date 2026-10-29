@@ -11,10 +11,12 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/money.dart';
+import '../../../data/models/itinerary_enums.dart';
 import '../../../data/models/itinerary_item.dart';
 import '../../../data/models/member.dart';
 import '../../../data/models/trip.dart';
 import '../../../shared/widgets/cards/glass_card.dart';
+import '../../../shared/widgets/domain/category_badge.dart';
 import '../../../shared/widgets/domain/member_avatar.dart';
 import '../../../shared/widgets/effects/grid_backdrop.dart';
 import '../../../shared/widgets/feedback/animated_progress_bar.dart';
@@ -23,8 +25,8 @@ import '../../../shared/widgets/layout/section_header.dart';
 import '../../../shared/widgets/layout/stat_strip.dart';
 import '../../expenses/controllers/money_controllers.dart';
 import '../../expenses/widgets/bill_form_sheet.dart';
+import '../../itinerary/widgets/itinerary_details_sheet.dart';
 import '../../itinerary/widgets/itinerary_form_sheet.dart';
-import '../../itinerary/widgets/itinerary_row.dart';
 
 /// A partir desta largura o roteiro e o acerto ficam lado a lado.
 const _twoColumns = 880.0;
@@ -48,13 +50,13 @@ class DashboardScreen extends ConsumerWidget {
             if (constraints.maxWidth < _twoColumns) {
               return const Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [_ItineraryTable(), Gap.vXl, _SettlementPanel()],
+                children: [_ItinerarySummary(), Gap.vXl, _SettlementPanel()],
               );
             }
             return const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(flex: 3, child: _ItineraryTable()),
+                Expanded(flex: 3, child: _ItinerarySummary()),
                 Gap.hXl,
                 Expanded(flex: 2, child: _SettlementPanel()),
               ],
@@ -243,31 +245,25 @@ class _MoneyStrip extends ConsumerWidget {
   }
 }
 
-/// As próximas atividades, em tabela, agrupadas por dia.
-class _ItineraryTable extends ConsumerWidget {
-  const _ItineraryTable();
+/// O roteiro em resumo: a próxima atividade em destaque, uma linha por dia
+/// para os próximos dias e, no rodapé, o tamanho do roteiro inteiro.
+class _ItinerarySummary extends ConsumerWidget {
+  const _ItinerarySummary();
 
   /// Bastante para dar a cara dos próximos dias sem virar o roteiro inteiro.
-  static const _maxRows = 10;
+  static const _maxDays = 4;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tripId = ref.watch(currentTripIdProvider);
     final allDays = ref.watch(itineraryDaysProvider);
+    final next = ref.watch(nextItineraryItemProvider);
     final today = DateTime.now().dateOnly;
 
     // Do dia de hoje em diante; com a viagem já encerrada, o roteiro todo.
-    final upcoming = allDays.where((d) => !d.date.dateOnly.isBefore(today)).toList();
-    final source = upcoming.isEmpty ? allDays : upcoming;
-
-    final shown = <ItineraryDay>[];
-    var rows = 0;
-    for (final day in source) {
-      if (rows >= _maxRows) break;
-      shown.add(day);
-      rows += day.items.length;
-    }
-    final total = allDays.fold<int>(0, (sum, d) => sum + d.items.length);
+    final upcoming = allDays.where((d) => !d.date.isBefore(today)).toList();
+    final shown = (upcoming.isEmpty ? allDays : upcoming).take(_maxDays).toList();
+    final empty = allDays.isEmpty;
     void open() => context.go(Routes.tripSection(tripId, AppDestination.itinerary));
 
     return Column(
@@ -275,12 +271,12 @@ class _ItineraryTable extends ConsumerWidget {
       children: [
         SectionHeader(
           title: 'Roteiro',
-          actionLabel: total == 0 ? null : 'Ver tudo',
-          onAction: total == 0 ? null : open,
+          actionLabel: empty ? null : 'Ver tudo',
+          onAction: empty ? null : open,
         ),
         GlassCard(
           padding: EdgeInsets.zero,
-          child: total == 0
+          child: empty
               ? _EmptyRow(
                   message: 'Nenhuma atividade no roteiro.',
                   actionLabel: 'Nova atividade',
@@ -289,12 +285,10 @@ class _ItineraryTable extends ConsumerWidget {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const ItineraryTableHeader(detailed: false),
-                    for (final (d, day) in shown.indexed) ...[
-                      if (d > 0) const Divider(),
-                      _DayLabel(day: day),
-                      for (final item in day.items) ItineraryRow(item: item, detailed: false),
-                    ],
+                    if (next != null) ...[_NextUp(item: next), const Divider()],
+                    for (final day in shown) _DayLine(day: day, onTap: open),
+                    const Divider(),
+                    _ItineraryFooter(days: allDays),
                   ],
                 ),
         ),
@@ -303,26 +297,284 @@ class _ItineraryTable extends ConsumerWidget {
   }
 }
 
-class _DayLabel extends StatelessWidget {
-  const _DayLabel({required this.day});
+/// "hoje", "amanhã" ou "sex 27/12".
+String _relativeDay(DateTime date) {
+  final days = date.dateOnly.difference(DateTime.now().dateOnly).inDays;
+  return switch (days) {
+    0 => 'hoje',
+    1 => 'amanhã',
+    _ => '${Fmt.weekdayShort(date)} ${Fmt.dateShort(date)}',
+  };
+}
 
-  final ItineraryDay day;
+/// A próxima atividade que ainda vai acontecer, numa faixa tingida com a
+/// cor da categoria dela.
+class _NextUp extends StatelessWidget {
+  const _NextUp({required this.item});
+
+  final ItineraryItem item;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: context.colors.surfaceContainerLow,
-      padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: 6),
-      child: Text(
-        [
-          '${Fmt.weekdayShort(day.date)} ${Fmt.dateShort(day.date)}'.toUpperCase(),
-          if (day.isToday) 'hoje',
-        ].join(' · '),
-        style: AppTypography.mono(
-          size: 11,
-          weight: FontWeight.w600,
-          color: context.colors.onSurfaceVariant,
+    final color = item.category.color;
+    final dark = context.isDark;
+    final place = item.placeName ?? '';
+    final when = [
+      _relativeDay(item.date),
+      if (item.hasTime) Fmt.time(item.startAt!),
+    ].join(' · ');
+
+    return Ink(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color.withValues(alpha: dark ? 0.16 : 0.10), color.withValues(alpha: 0)],
         ),
+      ),
+      child: InkWell(
+        onTap: () => showItineraryDetails(context, item: item),
+        child: Padding(
+          padding: const EdgeInsets.all(Gap.lg),
+          child: Row(
+            children: [
+              CategoryBadge(icon: item.category.icon, color: color, size: 44),
+              Gap.hMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PRÓXIMA · ${when.toUpperCase()}',
+                      style: AppTypography.mono(
+                        size: 11,
+                        weight: FontWeight.w600,
+                        color: dark
+                            ? Color.lerp(color, Colors.white, 0.25)
+                            : Color.lerp(color, Colors.black, 0.25),
+                      ),
+                    ),
+                    Gap.vXs,
+                    Text(
+                      item.title,
+                      style: context.text.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (place.isNotEmpty)
+                      Row(
+                        children: [
+                          Icon(
+                            item.hasCoords ? Icons.place : Icons.place_outlined,
+                            size: 14,
+                            color: context.colors.onSurfaceVariant,
+                          ),
+                          Gap.hXs,
+                          Expanded(
+                            child: Text(
+                              place,
+                              style: context.text.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Um dia numa linha só: a data em bloco, os nomes das atividades em
+/// sequência e, embaixo, os ícones das categorias e a contagem.
+class _DayLine extends StatelessWidget {
+  const _DayLine({required this.day, required this.onTap});
+
+  final ItineraryDay day;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // As canceladas só entram quando o dia não tem mais nada.
+    final active = day.items.where((i) => i.status != ItineraryStatus.cancelled).toList();
+    final items = active.isEmpty ? day.items : active;
+    final categories = {for (final i in items) i.category}.take(4);
+    final firstTime = items.where((i) => i.hasTime).firstOrNull?.startAt;
+    final allDone = day.doneCount == day.items.length;
+    final muted = context.colors.onSurfaceVariant;
+
+    final meta = [
+      '${items.length} ${items.length == 1 ? "atividade" : "atividades"}',
+      if (firstTime != null) 'desde ${Fmt.time(firstTime)}',
+      if (day.doneCount > 0 && !allDone) '${day.doneCount} feitas',
+    ].join(' · ');
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.md),
+        child: Row(
+          children: [
+            _DateTile(date: day.date, today: day.isToday),
+            Gap.hMd,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    items.map((i) => i.title).join(' · '),
+                    style: context.text.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: allDone ? muted : null,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.vXs,
+                  Row(
+                    children: [
+                      for (final c in categories) ...[
+                        Icon(c.icon, size: 14, color: allDone ? muted : c.color),
+                        const SizedBox(width: 2),
+                      ],
+                      Gap.hXs,
+                      Expanded(
+                        child: Text(
+                          meta,
+                          style: context.text.bodySmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Gap.hSm,
+            allDone
+                ? Icon(Icons.check_circle_rounded, size: 18, color: context.success)
+                : Icon(Icons.chevron_right_rounded, size: 18, color: muted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A data como folha de calendário: dia da semana, número e mês. Hoje
+/// ganha a cor de destaque.
+class _DateTile extends StatelessWidget {
+  const _DateTile({required this.date, required this.today});
+
+  final DateTime date;
+  final bool today;
+
+  @override
+  Widget build(BuildContext context) {
+    final strong = today ? context.colors.onPrimary : context.colors.onSurface;
+    final soft =
+        today ? context.colors.onPrimary.withValues(alpha: 0.8) : context.colors.onSurfaceVariant;
+    final small = AppTypography.mono(size: 9, weight: FontWeight.w600, color: soft);
+
+    return Container(
+      width: 44,
+      padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+      decoration: BoxDecoration(
+        color: today ? context.colors.primary : context.colors.surfaceContainerLow,
+        borderRadius: Radii.brSm,
+        border: Border.all(color: today ? context.colors.primary : context.colors.outline),
+      ),
+      child: Column(
+        children: [
+          Text((today ? 'hoje' : Fmt.weekdayShort(date)).toUpperCase(), style: small),
+          Text(
+            '${date.day}',
+            style: AppTypography.mono(size: 17, weight: FontWeight.w600, color: strong)
+                .copyWith(height: 1.15),
+          ),
+          Text(Fmt.monthShort(date).toUpperCase(), style: small),
+        ],
+      ),
+    );
+  }
+}
+
+/// O roteiro inteiro numa linha: quantas atividades, em quantos dias, e as
+/// categorias que mais aparecem.
+class _ItineraryFooter extends StatelessWidget {
+  const _ItineraryFooter({required this.days});
+
+  final List<ItineraryDay> days;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      for (final d in days) ...d.items.where((i) => i.status != ItineraryStatus.cancelled),
+    ];
+    final done = items.where((i) => i.status == ItineraryStatus.done).length;
+    final counts = <ItineraryCategory, int>{};
+    for (final i in items) {
+      counts.update(i.category, (n) => n + 1, ifAbsent: () => 1);
+    }
+    final top = (counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
+        .take(context.isMobile ? 3 : 4);
+
+    final summary = [
+      '${items.length} ${items.length == 1 ? "atividade" : "atividades"} em '
+          '${days.length} ${days.length == 1 ? "dia" : "dias"}',
+      if (done > 0) '$done feitas',
+    ].join(' · ');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.md),
+      child: Row(
+        children: [
+          Expanded(child: Text(summary, style: context.text.labelSmall)),
+          for (final e in top) ...[
+            Gap.hXs,
+            Tooltip(
+              message: e.key.label,
+              child: _CategoryCount(category: e.key, count: e.value),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Uma categoria e quantas vezes ela aparece no roteiro, numa pílula.
+class _CategoryCount extends StatelessWidget {
+  const _CategoryCount({required this.category, required this.count});
+
+  final ItineraryCategory category;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = category.color;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: context.isDark ? 0.20 : 0.12),
+        borderRadius: Radii.brPill,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(category.icon, size: 12, color: color),
+          const SizedBox(width: 3),
+          Text(
+            '$count',
+            style: AppTypography.mono(size: 11, weight: FontWeight.w600, color: color),
+          ),
+        ],
       ),
     );
   }

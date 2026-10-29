@@ -50,6 +50,9 @@ class _EntryFormSheetState extends ConsumerState<EntryFormSheet> {
 
   late DateTime _date;
   String? _paidByMemberId;
+
+  /// Quem divide este lançamento. Começa com todos da conta.
+  late Set<String> _splitters;
   List<Attachment> _receipts = [];
   bool _saving = false;
   bool _uploading = false;
@@ -61,6 +64,11 @@ class _EntryFormSheetState extends ConsumerState<EntryFormSheet> {
     final entry = widget.entry;
     _date = entry?.date ?? DateTime.now();
     _paidByMemberId = entry?.paidByMemberId ?? _defaultPayer();
+    _splitters = {
+      ...(entry == null || entry.isSplitByAll ? widget.bill.participantIds : entry.participantIds),
+    };
+    // A prévia do "quanto fica para cada um" acompanha o valor digitado.
+    _amountController.addListener(_onAmountChanged);
     if (entry != null) {
       _descriptionController.text = entry.description;
       _notesController.text = entry.notes ?? '';
@@ -80,8 +88,22 @@ class _EntryFormSheetState extends ConsumerState<EntryFormSheet> {
     return bill.paidByMemberId ?? bill.participantIds.firstOrNull;
   }
 
+  void _onAmountChanged() => setState(() {});
+
+  /// Todos da conta marcados viram a lista vazia, que quer dizer "todos" —
+  /// e assim continua valendo se alguém entrar na conta depois.
+  List<String> get _participantIdsToSave {
+    final all = widget.bill.participantIds;
+    if (all.every(_splitters.contains)) return const [];
+    return [
+      ...all.where(_splitters.contains),
+      ..._splitters.where((id) => !all.contains(id)),
+    ];
+  }
+
   @override
   void dispose() {
+    _amountController.removeListener(_onAmountChanged);
     _descriptionController.dispose();
     _amountController.dispose();
     _notesController.dispose();
@@ -122,6 +144,10 @@ class _EntryFormSheetState extends ConsumerState<EntryFormSheet> {
       AppToast.warning('Escolha quem pagou');
       return;
     }
+    if (widget.bill.participantIds.isNotEmpty && _splitters.isEmpty) {
+      AppToast.warning('Escolha quem divide este lançamento');
+      return;
+    }
 
     setState(() => _saving = true);
     try {
@@ -134,6 +160,7 @@ class _EntryFormSheetState extends ConsumerState<EntryFormSheet> {
               amountCents: Money.parse(_amountController.text) ?? 0,
               date: _date,
               paidByMemberId: _paidByMemberId,
+              participantIds: _participantIdsToSave,
               receipts: _receipts,
               notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
               createdAt: widget.entry?.createdAt,
@@ -193,6 +220,18 @@ class _EntryFormSheetState extends ConsumerState<EntryFormSheet> {
                     selected: _paidByMemberId,
                     onSelect: (id) => setState(() => _paidByMemberId = id),
                   ),
+                  if (widget.bill.participantIds.isNotEmpty) ...[
+                    Gap.vXl,
+                    Text('Quem divide', style: context.text.labelLarge),
+                    Text('Quem entra no racha deste lançamento', style: context.text.bodySmall),
+                    Gap.vSm,
+                    _SplitSelector(
+                      bill: widget.bill,
+                      selected: _splitters,
+                      amountCents: Money.parse(_amountController.text) ?? 0,
+                      onChanged: (ids) => setState(() => _splitters = ids),
+                    ),
+                  ],
                   Gap.vLg,
                   InkWell(
                     borderRadius: Radii.brMd,
@@ -279,15 +318,213 @@ class _PayerSelector extends ConsumerWidget {
       runSpacing: Gap.sm,
       children: [
         for (final member in ordered)
+          // O `MemberChip` já marca o escolhido com um check animado; um
+          // rádio ao lado dele repetia a mesma informação.
           MemberChip(
             member: member,
             selected: member.id == selected,
             onTap: () => onSelect(member.id),
-            trailing: member.id == selected
-                ? Icon(Icons.radio_button_checked_rounded, size: 15, color: member.color)
-                : null,
           ),
       ],
+    );
+  }
+}
+
+/// Quem divide o lançamento: as pessoas da conta, marcáveis uma a uma, e
+/// dois atalhos — "Todos" e "Só eu". Cada pessoa marcada mostra embaixo do
+/// nome quanto fica para ela, e uma linha resume a divisão; os dois mudam
+/// com animação enquanto o valor é digitado.
+class _SplitSelector extends ConsumerWidget {
+  const _SplitSelector({
+    required this.bill,
+    required this.selected,
+    required this.amountCents,
+    required this.onChanged,
+  });
+
+  final Bill bill;
+  final Set<String> selected;
+  final int amountCents;
+  final ValueChanged<Set<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final members = ref.watch(membersByIdProvider);
+    final uid = ref.watch(currentUidProvider);
+    final all = bill.participantIds;
+    // Quem já tinha saído da conta mas está no lançamento continua visível.
+    final ids = [...all, ...selected.where((id) => !all.contains(id))];
+
+    final among = ids.where(selected.contains).toList();
+    final custom = bill.splitMode == SplitMode.custom && bill.customWeights.isNotEmpty;
+    final parts = among.isEmpty
+        ? const <int>[]
+        : custom
+            ? Money.divideByWeights(amountCents, among.map((m) => bill.customWeights[m] ?? 1).toList())
+            : Money.divide(amountCents, among.length);
+    final partOf = {for (var i = 0; i < among.length; i++) among[i]: parts[i]};
+
+    final isAll = all.every(selected.contains) && selected.length == all.length;
+    final isOnlyMe = uid != null && selected.length == 1 && selected.contains(uid);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: Gap.sm,
+          children: [
+            _QuickPick(
+              label: 'Todos',
+              icon: Icons.groups_rounded,
+              active: isAll,
+              onTap: () => onChanged({...all}),
+            ),
+            if (uid != null && all.contains(uid))
+              _QuickPick(
+                label: 'Só eu',
+                icon: Icons.person_rounded,
+                active: isOnlyMe,
+                onTap: () => onChanged({uid}),
+              ),
+          ],
+        ),
+        Gap.vMd,
+        Wrap(
+          spacing: Gap.sm,
+          runSpacing: Gap.sm,
+          children: [
+            for (final id in ids)
+              if (members[id] case final member?)
+                MemberChip(
+                  member: member,
+                  selected: selected.contains(id),
+                  subtitle: selected.contains(id)
+                      ? (amountCents > 0 ? Money.format(partOf[id] ?? 0) : 'divide')
+                      : 'fora',
+                  onTap: () => onChanged(
+                    selected.contains(id)
+                        ? ({...selected}..remove(id))
+                        : {...selected, id},
+                  ),
+                ),
+          ],
+        ),
+        Gap.vSm,
+        AnimatedSwitcher(
+          duration: Motion.normal,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SizeTransition(
+              sizeFactor: animation,
+              alignment: Alignment.topLeft,
+              child: child,
+            ),
+          ),
+          child: _summary(context, among, parts, members, isAll, custom),
+        ),
+      ],
+    );
+  }
+
+  Widget _summary(
+    BuildContext context,
+    List<String> among,
+    List<int> parts,
+    Map<String, Member> members,
+    bool isAll,
+    bool custom,
+  ) {
+    final (IconData icon, String text, Color color) = switch (among.length) {
+      0 => (
+          Icons.error_outline_rounded,
+          'Escolha pelo menos uma pessoa',
+          context.colors.error,
+        ),
+      1 => (
+          Icons.person_rounded,
+          'Fica todo com ${members[among.single]?.shortName ?? "uma pessoa"}',
+          context.colors.onSurfaceVariant,
+        ),
+      _ when custom => (
+          Icons.tune_rounded,
+          'Dividido entre ${among.length} pelos pesos da conta',
+          context.colors.onSurfaceVariant,
+        ),
+      _ when amountCents <= 0 => (
+          Icons.call_split_rounded,
+          isAll ? 'Dividido entre todos os ${among.length}' : 'Dividido entre ${among.length} pessoas',
+          context.colors.onSurfaceVariant,
+        ),
+      _ => (
+          Icons.call_split_rounded,
+          // O centavo de resto vai para alguém: "cerca de" avisa que um
+          // pode pagar um centavo a mais.
+          '${parts.toSet().length > 1 ? "Cerca de " : ""}${Money.format(parts.last)} '
+              'para cada um ${isAll ? "dos ${among.length}" : "de ${among.length}"}',
+          context.colors.onSurfaceVariant,
+        ),
+    };
+
+    return Row(
+      key: ValueKey(text),
+      children: [
+        Icon(icon, size: 16, color: color),
+        Gap.hXs,
+        Flexible(child: Text(text, style: context.text.bodySmall?.copyWith(color: color))),
+      ],
+    );
+  }
+}
+
+/// Atalho de seleção, aceso quando a escolha atual é exatamente a dele.
+class _QuickPick extends StatelessWidget {
+  const _QuickPick({
+    required this.label,
+    required this.icon,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = context.colors.primary;
+    final fg = active ? primary : context.colors.onSurfaceVariant;
+
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        borderRadius: Radii.brPill,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: Motion.normal,
+          curve: Motion.enter,
+          padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: 6),
+          decoration: BoxDecoration(
+            color: active ? primary.withValues(alpha: context.isDark ? 0.2 : 0.1) : null,
+            borderRadius: Radii.brPill,
+            border: Border.all(color: active ? primary : context.colors.outline),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: fg),
+              Gap.hXs,
+              Text(
+                label,
+                style: context.text.labelLarge?.copyWith(
+                  color: fg,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

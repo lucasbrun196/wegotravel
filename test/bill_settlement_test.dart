@@ -102,4 +102,79 @@ void main() {
       expect(s.debtsOf('ana').single.toId, 'lucas');
     });
   });
+
+  group('Lançamento dividido só entre algumas pessoas', () {
+    // Mercado entre 4, mas nem toda compra é de todo mundo.
+    BillEntry buy(int cents, String payer, [List<String> among = const []]) => BillEntry(
+          id: 'e${n++}',
+          billId: 'gasolina',
+          description: '',
+          amountCents: cents,
+          date: DateTime(2026, 1, 10),
+          paidByMemberId: payer,
+          participantIds: among,
+        );
+
+    test('a compra de dois só entra na parte dos dois', () {
+      // R$ 190 de Lucas e Ana: 95 cada; Manuela e Pedro não devem nada.
+      final s = BillSettlement.of(gas, [buy(19000, 'lucas', ['lucas', 'ana'])]);
+      expect(s.owedBy('lucas'), 9500);
+      expect(s.owedBy('ana'), 9500);
+      expect(s.owedBy('manuela'), 0);
+      expect(s.owedBy('pedro'), 0);
+      expect(s.debtsOf('ana').single.amountCents, 9500);
+      expect(s.debtsOf('manuela'), isEmpty);
+      // Continuam no acerto, com zero, na ordem da conta.
+      expect(s.memberIds, ['lucas', 'manuela', 'ana', 'pedro']);
+    });
+
+    test('só eu: não gera dívida para ninguém', () {
+      final s = BillSettlement.of(gas, [buy(19000, 'lucas', ['lucas'])]);
+      expect(s.owedBy('lucas'), 19000);
+      expect(s.transfers, isEmpty);
+      final shares = s.toShares(tripId: 't', billId: 'gasolina');
+      expect(sum(shares.map((x) => x.amountCents)), 19000);
+    });
+
+    test('mistura de lançamentos de todos e de alguns', () {
+      // 400 de todos (100 cada) + 190 de Lucas e Ana (95 cada).
+      final s = BillSettlement.of(gas, [
+        buy(40000, 'manuela'),
+        buy(19000, 'lucas', ['ana', 'lucas']),
+      ]);
+      expect(s.owedBy('lucas'), 19500);
+      expect(s.owedBy('ana'), 19500);
+      expect(s.owedBy('manuela'), 10000);
+      expect(s.owedBy('pedro'), 10000);
+      expect(sum(s.owedCents.values), 59000);
+      final shares = s.toShares(tripId: 't', billId: 'gasolina');
+      expect(sum(shares.map((x) => x.amountCents)), 59000);
+    });
+
+    test('mesmo grupo soma antes de dividir: o resto não cai sempre no mesmo', () {
+      // Três lançamentos de 1 centavo entre Lucas e Ana: 3 centavos, 2 + 1.
+      final s = BillSettlement.of(gas, [
+        for (var i = 0; i < 3; i++) buy(1, 'pedro', ['lucas', 'ana']),
+      ]);
+      expect(s.owedBy('lucas') + s.owedBy('ana'), 3);
+      expect((s.owedBy('lucas') - s.owedBy('ana')).abs(), 1);
+    });
+
+    test('marcar todo mundo é o mesmo que todos', () {
+      final all = BillSettlement.of(gas, [buy(10001, 'pedro')]);
+      final listed = BillSettlement.of(gas, [
+        buy(10001, 'pedro', ['pedro', 'ana', 'manuela', 'lucas']),
+      ]);
+      for (final id in gas.participantIds) {
+        expect(listed.owedBy(id), all.owedBy(id));
+      }
+    });
+
+    test('quem saiu da conta continua no lançamento em que entrou', () {
+      final s = BillSettlement.of(gas, [buy(10000, 'lucas', ['lucas', 'tio'])]);
+      expect(s.owedBy('tio'), 5000);
+      expect(s.memberIds, contains('tio'));
+      expect(s.debtsOf('tio').single.toId, 'lucas');
+    });
+  });
 }

@@ -14,6 +14,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/utils/money.dart';
 import '../../../data/models/bill.dart';
 import '../../../data/models/bill_entry.dart';
+import '../../../data/models/bill_settlement.dart';
 import '../../../data/models/bill_share.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/models/member.dart';
@@ -545,7 +546,7 @@ class _EntriesSection extends ConsumerWidget {
                 ),
         ),
         Gap.vLg,
-        _AccumulatingFooter(bill: bill),
+        _AccumulatingFooter(bill: bill, entries: entriesAsync.valueOrNull ?? const []),
       ],
     );
   }
@@ -559,7 +560,8 @@ class _EntryTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final payer = ref.watch(membersByIdProvider)[entry.paidByMemberId ?? bill.paidByMemberId];
+    final members = ref.watch(membersByIdProvider);
+    final payer = members[entry.paidByMemberId ?? bill.paidByMemberId];
 
     return InkWell(
       onTap: bill.status == BillStatus.settled
@@ -567,9 +569,25 @@ class _EntryTile extends ConsumerWidget {
           : () => showEntryForm(context, bill: bill, entry: entry),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.md, Gap.sm, Gap.md),
-        child: _EntryTileBody(bill: bill, entry: entry, payer: payer, ref: ref),
+        child: _EntryTileBody(
+          bill: bill,
+          entry: entry,
+          payer: payer,
+          split: entry.isSplitByAll ? null : _splitLabel(entry.splitAmong(bill), members),
+          ref: ref,
+        ),
       ),
     );
+  }
+
+  /// "Só Lucas", "Lucas e Ana", "Lucas, Ana e Pedro", "5 pessoas".
+  static String _splitLabel(List<String> ids, Map<String, Member> members) {
+    final names = [for (final id in ids) members[id]?.shortName ?? 'alguém'];
+    return switch (names.length) {
+      1 => 'Só ${names.single}',
+      2 || 3 => '${names.take(names.length - 1).join(', ')} e ${names.last}',
+      _ => '${names.length} pessoas',
+    };
   }
 }
 
@@ -583,12 +601,16 @@ class _EntryTileBody extends StatelessWidget {
     required this.bill,
     required this.entry,
     required this.payer,
+    required this.split,
     required this.ref,
   });
 
   final Bill bill;
   final BillEntry entry;
   final Member? payer;
+
+  /// Quem divide, quando não são todos da conta.
+  final String? split;
   final WidgetRef ref;
 
   @override
@@ -637,6 +659,28 @@ class _EntryTileBody extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        // Só aparece quando foge da regra: dividido por todos é o normal.
+        if (split != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Row(
+              children: [
+                Icon(Icons.call_split_rounded, size: 13, color: context.colors.primary),
+                Gap.hXs,
+                Flexible(
+                  child: Text(
+                    'Dividido: ${split!}',
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.colors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
 
@@ -674,11 +718,54 @@ class _EntryTileBody extends StatelessWidget {
   }
 }
 
+/// Quanto fica para uma pessoa, numa pílula com o avatar dela. O valor
+/// troca com um esmaecer quando um lançamento muda.
+class _OwedPill extends StatelessWidget {
+  const _OwedPill({required this.member, required this.cents});
+
+  final Member member;
+  final int cents;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(3, 3, Gap.md, 3),
+      decoration: BoxDecoration(
+        color: member.color.withValues(alpha: context.isDark ? 0.18 : 0.08),
+        borderRadius: Radii.brPill,
+        border: Border.all(color: member.color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MemberAvatar(member: member, size: 22),
+          Gap.hSm,
+          Text(member.shortName, style: context.text.labelLarge),
+          Gap.hSm,
+          AnimatedSwitcher(
+            duration: Motion.normal,
+            child: Text(
+              Money.format(cents),
+              key: ValueKey(cents),
+              style: AppTypography.money(size: 13, color: context.colors.onSurface),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Total acumulado + ação de fechar/reabrir a conta.
 class _AccumulatingFooter extends ConsumerWidget {
-  const _AccumulatingFooter({required this.bill});
+  const _AccumulatingFooter({required this.bill, required this.entries});
 
   final Bill bill;
+  final List<BillEntry> entries;
+
+  /// Algum lançamento é só de algumas pessoas: aí cada um fica com um
+  /// valor diferente, e "X para cada" deixa de ser verdade.
+  bool get _hasPartialSplit => entries.any((e) => !e.isSplitByAll);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -686,6 +773,8 @@ class _AccumulatingFooter extends ConsumerWidget {
     final perPerson = bill.participantIds.isEmpty
         ? 0
         : Money.divide(bill.entriesTotalCents, bill.participantIds.length).first;
+    final members = ref.watch(membersByIdProvider);
+    final settlement = _hasPartialSplit ? BillSettlement.of(bill, entries) : null;
 
     return GlassCard(
       child: Column(
@@ -700,7 +789,20 @@ class _AccumulatingFooter extends ConsumerWidget {
               ),
             ],
           ),
-          if (bill.participantIds.isNotEmpty) ...[
+          if (settlement != null) ...[
+            Gap.vXs,
+            Text('Cada lançamento entra só na parte de quem o divide:', style: context.text.bodySmall),
+            Gap.vSm,
+            Wrap(
+              spacing: Gap.sm,
+              runSpacing: Gap.sm,
+              children: [
+                for (final id in settlement.memberIds)
+                  if (members[id] case final member? when settlement.owedBy(id) > 0)
+                    _OwedPill(member: member, cents: settlement.owedBy(id)),
+              ],
+            ),
+          ] else if (bill.participantIds.isNotEmpty) ...[
             Gap.vXs,
             Text(
               'Daria ${Money.format(perPerson)} para cada uma das '
@@ -736,9 +838,10 @@ class _AccumulatingFooter extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('Fechar a conta?'),
         content: Text(
-          'O total de ${Money.format(bill.entriesTotalCents)} será dividido entre '
-          '${bill.participantIds.length} pessoas. O app soma quanto cada um pagou '
-          'e calcula quem transfere quanto para quem. '
+          '${_hasPartialSplit ? 'Cada lançamento do total de ${Money.format(bill.entriesTotalCents)} '
+              'será dividido entre quem o divide' : 'O total de ${Money.format(bill.entriesTotalCents)} '
+              'será dividido entre ${bill.participantIds.length} pessoas'}. '
+          'O app soma quanto cada um pagou e calcula quem transfere quanto para quem. '
           'Você pode reabrir depois se precisar lançar mais.',
         ),
         actions: [

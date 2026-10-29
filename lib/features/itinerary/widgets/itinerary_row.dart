@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/extensions/context_ext.dart';
@@ -15,24 +14,25 @@ import '../../../data/models/itinerary_item.dart';
 import '../../../shared/widgets/domain/category_badge.dart';
 import '../../../shared/widgets/feedback/app_toast.dart';
 import 'itinerary_chip.dart';
+import 'itinerary_details_sheet.dart';
 import 'itinerary_form_sheet.dart';
 import 'weather_chip.dart';
 
-/// Abaixo desta largura a categoria e o transporte saem das colunas
-/// próprias e viram texto embaixo do título.
+/// Abaixo desta largura o cabeçalho das colunas some.
 const _tableBreakpoint = 560.0;
 
 /// Uma atividade como linha de tabela: hora em mono na coluna da esquerda,
-/// atividade no meio, categoria e transporte em colunas à direita.
+/// atividade no meio e o menu de status na ponta. Embaixo do título vêm o
+/// endereço, as categorias e o trajeto em etiquetas, e por fim as etiquetas
+/// extras (previsão, contas ligadas, link).
 ///
-/// A versão [detailed] é a do Roteiro: tem o menu de status, o endereço e
-/// as etiquetas (previsão, contas ligadas, link). A outra é a do Resumo,
-/// só para ler.
+/// Categoria e transporte já tiveram colunas próprias, de largura fixa: com
+/// mais de um valor viravam "Passeio, Jantar, R…". Em etiquetas eles
+/// quebram linha em vez de cortar, e cada um tem o seu ícone.
 class ItineraryRow extends ConsumerWidget {
-  const ItineraryRow({super.key, required this.item, this.detailed = true});
+  const ItineraryRow({super.key, required this.item});
 
   final ItineraryItem item;
-  final bool detailed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,7 +43,7 @@ class ItineraryRow extends ConsumerWidget {
 
     // Na ordem em que as contas foram ligadas, e sem as que já foram
     // apagadas em Contas.
-    final bills = detailed && item.isLinkedToBill
+    final bills = item.isLinkedToBill
         ? {
             for (final b in ref.watch(billsProvider).valueOrNull ?? const <Bill>[]) b.id: b,
           }
@@ -54,146 +54,173 @@ class ItineraryRow extends ConsumerWidget {
     ];
     final hasLink = item.link != null && item.link!.isNotEmpty;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= _tableBreakpoint;
+    final place = [
+      item.placeName,
+      item.address,
+    ].where((s) => s != null && s.isNotEmpty).join(' · ');
 
-        final place = [
-          item.placeName,
-          if (detailed) item.address,
-        ].where((s) => s != null && s.isNotEmpty).join(' · ');
+    final tags = <Widget>[
+      // Só entra na lista quando pode aparecer: o botão se esconde sozinho,
+      // mas um widget vazio ainda ocuparia o `spacing` e empurraria as
+      // outras etiquetas para a direita. Sobra o caso do dia fora do
+      // horizonte da previsão, que só se sabe depois do pedido.
+      if (item.hasCoords && ref.watch(weatherWindowOpenProvider)) WeatherChip(item: item),
+      for (final bill in linkedBills)
+        ItineraryChip(
+          label: '${bill.title} · ${Money.formatCompact(bill.chargedTotalCents)}',
+          icon: Icons.receipt_long_outlined,
+          color: AppColors.sunset,
+        ),
+      if (hasLink) _LinkChip(url: item.link!),
+    ];
 
-        final subtitle = wide
-            ? place
-            : [
-                if (place.isNotEmpty) place,
-                item.categoriesLabel,
-                ?item.transportsLabel,
-              ].join(' · ');
-
-        final tags = <Widget>[
-          // Só entra na lista quando há coordenada: o botão se esconde
-          // sozinho, mas um widget vazio ainda ocuparia o `spacing`.
-          if (detailed && item.hasCoords) WeatherChip(item: item),
-          for (final bill in linkedBills)
-            ItineraryChip(
-              label: '${bill.title} · ${Money.formatCompact(bill.chargedTotalCents)}',
-              icon: Icons.receipt_long_outlined,
-              color: AppColors.sunset,
+    // Tocar é para consultar; editar fica no menu "...", para um formulário
+    // não abrir (e ser salvo) sem querer.
+    return InkWell(
+      onTap: () => showItineraryDetails(context, item: item),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.md, Gap.xs, Gap.md),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 52, child: _TimeColumn(item: item, faded: faded)),
+            CategoryBadge(
+              icon: item.category.icon,
+              color: item.category.color,
+              size: 32,
+              faded: faded,
             ),
-          if (detailed && hasLink) _LinkChip(url: item.link!),
-        ];
-
-        return InkWell(
-          onTap: () => showItineraryForm(context, item: item),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(Gap.lg, Gap.md, detailed ? Gap.xs : Gap.lg, Gap.md),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 52,
-                  child: Text(
-                    item.hasTime ? Fmt.time(item.startAt!) : '—',
-                    style: AppTypography.mono(
-                      size: 13,
-                      color: faded ? AppColors.inkFaint : context.colors.onSurface,
-                    ).copyWith(height: 2.2),
-                  ),
-                ),
-                CategoryBadge(
-                  icon: item.category.icon,
-                  color: item.category.color,
-                  size: 32,
-                  faded: faded,
-                ),
-                Gap.hMd,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            Gap.hMd,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              item.title,
-                              style: context.text.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                color: faded ? muted : null,
-                                decoration: cancelled ? TextDecoration.lineThrough : null,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      Flexible(
+                        child: Text(
+                          item.title,
+                          style: context.text.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: faded ? muted : null,
+                            decoration: cancelled ? TextDecoration.lineThrough : null,
                           ),
-                          if (done) ...[
-                            Gap.hXs,
-                            Icon(Icons.check, size: 14, color: context.success),
-                          ],
-                        ],
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      if (subtitle.isNotEmpty)
-                        Text(
-                          subtitle,
-                          style: context.text.bodySmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      if (tags.isNotEmpty) ...[
-                        Gap.vSm,
-                        Wrap(spacing: 6, runSpacing: 6, children: tags),
-                      ],
-                      if (detailed && item.notes != null && item.notes!.isNotEmpty) ...[
-                        Gap.vXs,
-                        Text(
-                          item.notes!,
-                          style: context.text.bodySmall?.copyWith(color: AppColors.inkFaint),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      if (done) ...[
+                        Gap.hXs,
+                        Icon(Icons.check, size: 14, color: context.success),
                       ],
                     ],
                   ),
-                ),
-                if (wide) ...[
-                  Gap.hMd,
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      item.categoriesLabel,
-                      style: context.text.bodySmall?.copyWith(
-                        color: faded ? null : item.category.color,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 104,
-                    child: Text(
-                      item.transportsLabel ?? '—',
+                  if (place.isNotEmpty)
+                    Text(
+                      place,
                       style: context.text.bodySmall,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  Gap.vSm,
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (final c in item.categories)
+                        ItineraryChip(
+                          label: c.label,
+                          icon: c.icon,
+                          color: faded ? null : c.color,
+                        ),
+                      if (item.transports.isNotEmpty)
+                        TransportRouteChip(transports: item.transports),
+                    ],
                   ),
+                  if (tags.isNotEmpty) ...[
+                    Gap.vSm,
+                    Wrap(spacing: 6, runSpacing: 6, children: tags),
+                  ],
+                  if (item.notes != null && item.notes!.isNotEmpty) ...[
+                    Gap.vSm,
+                    Text(
+                      item.notes!,
+                      style: context.text.bodySmall?.copyWith(color: AppColors.inkFaint),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
-                if (detailed) _StatusButton(item: item),
-              ],
+              ),
+            ),
+            _StatusButton(item: item),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+/// A hora de início e, quando há, a de fim embaixo, ligadas por um traço
+/// vertical — "das 05:30 às 07:00" lido de cima para baixo. O fim vem num
+/// tom mais apagado, para o olho pegar o começo primeiro.
+class _TimeColumn extends StatelessWidget {
+  const _TimeColumn({required this.item, required this.faded});
+
+  final ItineraryItem item;
+  final bool faded;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = item.startAt;
+    final end = item.endAt;
+    final strong = faded ? AppColors.inkFaint : context.colors.onSurface;
+    final soft = faded ? AppColors.inkFaint : context.colors.onSurfaceVariant;
+
+    final startStyle = AppTypography.mono(size: 13, color: strong);
+    if (start == null || end == null || end == start) {
+      // A altura de linha centraliza a hora com o selo de categoria (32px).
+      return Text(
+        start == null ? '—' : Fmt.time(start),
+        style: startStyle.copyWith(height: 2.2),
+      );
+    }
+
+    // Mesma posição da hora sozinha, mas com o espaço todo em cima: embaixo
+    // ela encosta no traço. A coluna fica da largura do texto, então o traço
+    // cai no meio dele.
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(Fmt.time(start), style: startStyle.copyWith(height: 1.3)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Container(
+              width: 1.5,
+              height: 14,
+              decoration: BoxDecoration(
+                color: soft.withValues(alpha: 0.4),
+                borderRadius: Radii.brPill,
+              ),
             ),
           ),
-        );
-      },
+          Text(Fmt.time(end), style: AppTypography.mono(size: 12, color: soft)),
+        ],
+      ),
     );
   }
 }
 
 /// O cabeçalho das colunas, para quando a tabela tem largura para elas.
 class ItineraryTableHeader extends StatelessWidget {
-  const ItineraryTableHeader({super.key, this.detailed = true});
-
-  final bool detailed;
+  const ItineraryTableHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -206,18 +233,15 @@ class ItineraryTableHeader extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(Gap.lg, Gap.sm, detailed ? Gap.xs : Gap.lg, Gap.sm),
+              padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.xs, Gap.sm),
               child: Row(
                 children: [
                   SizedBox(width: 52, child: Text('Hora', style: style)),
                   // A largura do selo de categoria e do espaço depois dele.
                   const SizedBox(width: 44),
                   Expanded(child: Text('Atividade', style: style)),
-                  Gap.hMd,
-                  SizedBox(width: 120, child: Text('Categoria', style: style)),
-                  SizedBox(width: 104, child: Text('Transporte', style: style)),
                   // A largura do botão de menu das linhas.
-                  if (detailed) const SizedBox(width: 40),
+                  const SizedBox(width: 40),
                 ],
               ),
             ),
@@ -354,14 +378,7 @@ class _LinkChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: Radii.brSm,
-      onTap: () async {
-        final uri = Uri.tryParse(url.startsWith('http') ? url : 'https://$url');
-        if (uri == null) return;
-        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-        if (!ok && context.mounted) {
-          AppToast.error('Não deu para abrir o link');
-        }
-      },
+      onTap: () => openActivityLink(context, url),
       child: const ItineraryChip(
         label: 'Abrir link',
         icon: Icons.open_in_new,
