@@ -235,7 +235,7 @@ class _BillFormSheetState extends ConsumerState<BillFormSheet> {
                   ),
                   Text(
                     _type == BillType.accumulating
-                        ? 'Vem marcado em cada lançamento — dá para trocar a cada vez'
+                        ? 'Vem marcado em cada lançamento, e dá para trocar a cada vez'
                         : 'Quem pagou e vai receber as transferências',
                     style: context.text.bodySmall,
                   ),

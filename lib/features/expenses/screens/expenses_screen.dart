@@ -95,7 +95,7 @@ class _YouOweCard extends ConsumerWidget {
               'parcela ${next.installmentNumber}/${bills[next.billId]!.installmentCount}',
             if (next.dueDate != null) 'vence ${Fmt.dateShort(next.dueDate!)}',
             Money.format(next.remainingCents),
-          ].join(' · ');
+          ].join(', ');
 
     return GridBackdrop(
       padding: const EdgeInsets.all(Gap.xl),

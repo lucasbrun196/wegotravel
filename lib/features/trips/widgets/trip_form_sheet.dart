@@ -220,7 +220,7 @@ class _TripFormSheetState extends ConsumerState<TripFormSheet> {
                   MoneyField(
                     controller: _budgetController,
                     label: 'Orçamento previsto',
-                    helper: 'Opcional — serve de referência no painel',
+                    helper: 'Opcional, serve de referência no Resumo',
                   ),
                 ],
               ),

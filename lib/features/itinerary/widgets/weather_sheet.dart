@@ -93,7 +93,7 @@ class _Unavailable extends StatelessWidget {
       icon: Icons.cloud_off_rounded,
       title: 'Ainda não dá para saber',
       message: 'A previsão alcança 16 dias à frente. Este dia está fora desse '
-          'alcance — ou já passou. Volte mais perto da data.',
+          'alcance, ou já passou. Volte mais perto da data.',
     );
   }
 }

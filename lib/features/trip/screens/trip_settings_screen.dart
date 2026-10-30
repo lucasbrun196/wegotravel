@@ -363,7 +363,7 @@ class _MemberTile extends ConsumerWidget {
         title: Text('Remover ${member.shortName}?'),
         content: const Text(
           'A pessoa deixa de ver esta viagem. As contas e cotas dela continuam '
-          'registradas — remova das contas antes, se for o caso.',
+          'registradas. Remova das contas antes, se for o caso.',
         ),
         actions: [
           TextButton(

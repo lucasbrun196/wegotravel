@@ -24,7 +24,7 @@ abstract final class Fmt {
   /// O ano aparece nos dois lados de propósito: viagem de fim de ano
   /// atravessa o réveillon, e "27/12 — 03/01" esconde justamente isso.
   static String dateRange(DateTime start, DateTime end) =>
-      '${dateShortWithYear(start)} — ${dateShortWithYear(end)}';
+      '${dateShortWithYear(start)} – ${dateShortWithYear(end)}';
   static String weekday(DateTime d) => DateFormat('EEEE', 'pt_BR').format(d);
   static String weekdayShort(DateTime d) => DateFormat('E', 'pt_BR').format(d).replaceAll('.', '');
   static String monthShort(DateTime d) => DateFormat('MMM', 'pt_BR').format(d).replaceAll('.', '');

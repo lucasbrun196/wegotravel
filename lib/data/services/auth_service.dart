@@ -34,7 +34,7 @@ class AuthFailure implements Exception {
         'user-mismatch' => 'Escolha a mesma conta Google com que você entrou.',
         'expired-action-code' => 'Esse link expirou. Peça um novo na tela de login.',
         'invalid-action-code' =>
-          'Esse link não vale mais — talvez já tenha sido usado. Peça um novo na tela de login.',
+          'Esse link não vale mais. Talvez já tenha sido usado. Peça um novo na tela de login.',
         'requires-recent-login' => 'Faça login de novo para concluir essa ação.',
         _ => 'Não deu para concluir. Tente novamente.',
       });

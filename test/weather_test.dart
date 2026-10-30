@@ -190,7 +190,7 @@ void main() {
 
     test('as faixas', () {
       expect(dia(chance: 35).rainVerdict, 'Chuva pouco provável');
-      expect(dia(chance: 60).rainVerdict, 'Pode chover — leve guarda-chuva');
+      expect(dia(chance: 60).rainVerdict, 'Pode chover, leve guarda-chuva');
       expect(dia(chance: 90).rainVerdict, 'Deve chover');
       expect(dia(chance: 60).willRain, isTrue);
     });

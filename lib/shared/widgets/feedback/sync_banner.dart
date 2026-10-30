@@ -73,7 +73,7 @@ class _Bar extends StatelessWidget {
               Flexible(
                 child: Text(
                   offline
-                      ? 'Sem conexão — mostrando o que já estava salvo'
+                      ? 'Sem conexão. Mostrando o que já estava salvo'
                       : 'Enviando as alterações…',
                   style: context.text.labelMedium?.copyWith(color: context.colors.onSurface),
                   maxLines: 2,

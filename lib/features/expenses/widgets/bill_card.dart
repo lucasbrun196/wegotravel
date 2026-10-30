@@ -12,7 +12,7 @@ import '../../../data/models/enums.dart';
 import '../../../shared/widgets/domain/category_badge.dart';
 import '../controllers/money_controllers.dart';
 
-/// Uma conta como linha da lista: nome, "Categoria · parcela 2/6 · vence
+/// Uma conta como linha da lista: nome, "Hospedagem, parcela 2/6, vence
 /// 12/10" embaixo e o valor em mono à direita.
 ///
 /// Vive dentro de um cartão único, separada das vizinhas por divisórias —
@@ -82,7 +82,7 @@ class BillRow extends ConsumerWidget {
     );
   }
 
-  /// "Hospedagem · parcela 2/6 · vence 12/10"
+  /// "Hospedagem, parcela 2/6, vence 12/10"
   static String _details(Bill bill, List<BillShare> shares) {
     if (bill.isAccumulating && shares.isEmpty) {
       return [
@@ -90,7 +90,7 @@ class BillRow extends ConsumerWidget {
         bill.status == BillStatus.settled
             ? 'fechada'
             : '${bill.entriesCount} ${bill.entriesCount == 1 ? "lançamento" : "lançamentos"}',
-      ].join(' · ');
+      ].join(', ');
     }
 
     // A próxima cota que alguém ainda tem a pagar diz em que pé a conta está.
@@ -111,6 +111,6 @@ class BillRow extends ConsumerWidget {
             ? 'parcela ${next!.installmentNumber}/${bill.installmentCount}'
             : '${bill.installmentCount}x',
       if (next?.dueDate != null) 'vence ${Fmt.dateShort(next!.dueDate!)}',
-    ].join(' · ');
+    ].join(', ');
   }
 }

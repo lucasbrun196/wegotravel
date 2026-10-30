@@ -57,7 +57,7 @@ class ItineraryRow extends ConsumerWidget {
     final place = [
       item.placeName,
       item.address,
-    ].where((s) => s != null && s.isNotEmpty).join(' · ');
+    ].where((s) => s != null && s.isNotEmpty).join(', ');
 
     final tags = <Widget>[
       // Só entra na lista quando pode aparecer: o botão se esconde sozinho,

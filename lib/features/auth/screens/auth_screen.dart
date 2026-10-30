@@ -436,7 +436,7 @@ class _ForgotPasswordFormState extends ConsumerState<_ForgotPasswordForm> {
         Gap.vSm,
         TextButton(
           onPressed: () => setState(() => _sentTo = null),
-          child: const Text('Não recebi — enviar de novo'),
+          child: const Text('Não recebi, enviar de novo'),
         ),
       ],
     );

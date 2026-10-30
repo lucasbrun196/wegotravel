@@ -316,7 +316,7 @@ class _DayHeader extends StatelessWidget {
                     Flexible(
                       child: Text(
                         '$count ${count == 1 ? "atividade" : "atividades"}'
-                        '${day.doneCount > 0 ? " · ${day.doneCount} feitas" : ""}',
+                        '${day.doneCount > 0 ? ", ${day.doneCount} feitas" : ""}',
                         style: context.text.labelSmall,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

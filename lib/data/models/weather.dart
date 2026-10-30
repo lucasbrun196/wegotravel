@@ -137,7 +137,7 @@ class DailyWeather {
     }
     if (p < 20) return 'Não deve chover';
     if (p < 50) return 'Chuva pouco provável';
-    if (p < 80) return 'Pode chover — leve guarda-chuva';
+    if (p < 80) return 'Pode chover, leve guarda-chuva';
     return 'Deve chover';
   }
 

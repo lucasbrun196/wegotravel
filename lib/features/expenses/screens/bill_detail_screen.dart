@@ -215,7 +215,7 @@ class _BillHeader extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            [bill.categoriesLabel, ?payerLabel].join(' · '),
+            [bill.categoriesLabel, ?payerLabel].join(', '),
             style: context.text.labelSmall,
           ),
           Gap.vXs,
@@ -233,8 +233,8 @@ class _BillHeader extends ConsumerWidget {
           ),
           if (bill.isInstallment)
             Text(
-              '${bill.installmentCount}x de ${Money.format(bill.effectiveInstallmentCents)} '
-              '· ${Money.format(bill.perPersonPerInstallmentCents)} por pessoa',
+              '${bill.installmentCount}x de ${Money.format(bill.effectiveInstallmentCents)}, '
+              '${Money.format(bill.perPersonPerInstallmentCents)} por pessoa',
               style: AppTypography.mono(size: 12, color: muted),
             ),
           if (summary.shareCount > 0) ...[
@@ -374,7 +374,7 @@ class _MemberShareRow extends ConsumerWidget {
                       ),
                       Text(
                         isOwner
-                            ? 'bancou a conta · a própria parte já está inclusa'
+                            ? 'bancou a conta, a própria parte já está inclusa'
                             : pendingCents == 0
                                 ? 'tudo pago'
                                 : 'falta ${Money.format(pendingCents)}',
@@ -459,7 +459,7 @@ class _InstallmentBox extends StatelessWidget {
         Money.format(share.amountCents),
         if (share.dueDate != null) 'vence ${Fmt.dateShort(share.dueDate!)}',
         if (share.isPaid && share.paidAt != null) 'pago ${Fmt.dateShort(share.paidAt!)}',
-      ].join(' · '),
+      ].join(', '),
       child: InkWell(
         borderRadius: Radii.brSm,
         onTap: onTap,
@@ -654,7 +654,7 @@ class _EntryTileBody extends StatelessWidget {
           [
             if (payer != null) '${payer!.shortName} pagou',
             Fmt.dateShortWithYear(entry.date),
-          ].join(' · '),
+          ].join(', '),
           style: context.text.bodySmall,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
