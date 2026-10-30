@@ -7,7 +7,7 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="O roteiro, os gastos e as fotos da viagem em um lugar só.">
-  <meta name="theme-color" content="#FFF9F6">
+  <meta name="theme-color" content="#F3F6F9">
 
   <!-- PWA / iOS: permite instalar na tela inicial, que é a estratégia para iPhone -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -22,16 +22,19 @@
   <!-- Pré-conexão às fontes: reduz o salto de layout no primeiro carregamento -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Só as letras de "WeGoTravel": a splash usa a mesma fonte do app sem
+       baixar a família inteira antes do bundle. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@700&display=swap&text=WeGoTravel">
 
   <title>WeGoTravel</title>
 
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #FFF9F6; }
+    html, body { margin: 0; padding: 0; height: 100%; background: #F3F6F9; }
 
     /* Splash: o bundle do Flutter Web leva alguns segundos no primeiro
-       acesso. Sem isto o usuário encara uma tela branca. Repete a splash
-       do app — o nome "WeGoTravel" e uma barra fina —, para a troca não
-       aparecer. */
+       acesso. Sem isto o usuário encara uma tela vazia. Repete a splash do
+       app — o selo do sol, o nome e uma barra fina —, para a troca não
+       aparecer. Aqui o sol nasce; na do Flutter ele já está no alto. */
     #splash {
       position: fixed;
       inset: 0;
@@ -39,29 +42,30 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 16px;
-      background: #FFF9F6;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      color: #2B201E;
+      gap: 24px;
+      background: #F3F6F9;
+      color: #14283B;
       z-index: 9999;
       transition: opacity .2s ease, visibility .2s ease;
     }
     #splash.hidden { opacity: 0; visibility: hidden; }
 
-    .splash-title {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.84px;
-      background: linear-gradient(90deg, #E5665E, #F29E5C);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .mark { width: 34px; height: 34px; display: block; }
+    .word {
+      font: 700 28px/1 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      letter-spacing: -0.56px;
     }
-    .splash-bar { border-radius: 2px; }
+    .sun { transform: translateY(26px); animation: rise 1.1s cubic-bezier(.2, .8, .2, 1) .1s forwards; }
+    .glint { opacity: 0; animation: shine .6s ease-out .7s forwards; }
+    @keyframes rise { to { transform: translateY(0); } }
+    @keyframes shine { to { opacity: .75; } }
+
     .splash-bar {
       width: 120px;
       height: 2px;
-      background: #FAEEEA;
+      border-radius: 2px;
+      background: #EAF0F5;
       overflow: hidden;
     }
     .splash-bar::after {
@@ -69,7 +73,7 @@
       display: block;
       width: 40%;
       height: 100%;
-      background: linear-gradient(90deg, #E5665E, #F29E5C);
+      background: #2C6AA8;
       animation: slide 1.3s ease-in-out infinite;
     }
 
@@ -78,14 +82,17 @@
       100% { transform: translateX(350%); }
     }
     @media (prefers-reduced-motion: reduce) {
+      .sun { animation: none; transform: none; }
+      .glint { animation: none; opacity: .75; }
       .splash-bar::after { animation: none; }
     }
     /* Tema escuro: a classe é posta pelo script logo abaixo, antes de a
        página pintar, para a splash já nascer na cor que o app vai usar. */
-    html.dark, html.dark body, html.dark #splash { background: #171211; }
-    html.dark #splash { color: #F6ECE9; }
-    html.dark .splash-bar { background: #2E2422; }
-    html.dark .splash-bar::after { background: linear-gradient(90deg, #F2857D, #F29E5C); }
+    html.dark, html.dark body, html.dark #splash { background: #0B1622; }
+    html.dark #splash { color: #EAF0F6; }
+    html.dark .tile-edge { stroke: #223A52; }
+    html.dark .splash-bar { background: #182C41; }
+    html.dark .splash-bar::after { background: #8DBEEC; }
   </style>
   <script>
     // Mesma regra do app: o tema salvo no aparelho (o shared_preferences
@@ -98,13 +105,27 @@
         (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
       if (dark) document.documentElement.classList.add('dark');
       var meta = document.querySelector('meta[name="theme-color"]');
-      if (dark && meta) meta.setAttribute('content', '#171211');
+      if (dark && meta) meta.setAttribute('content', '#0B1622');
     })();
   </script>
 </head>
 <body>
-  <div id="splash">
-    <div class="splash-title">WeGoTravel</div>
+  <div id="splash" role="img" aria-label="WeGoTravel">
+    <div class="brand">
+      <!-- O selo do app (SunMark): o sol meio afundado no mar. -->
+      <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+        <defs><clipPath id="sky"><rect width="100" height="60"/></clipPath></defs>
+        <rect width="100" height="100" rx="26" fill="#14283B"/>
+        <rect class="tile-edge" x="0.5" y="0.5" width="99" height="99" rx="25.5" fill="none" stroke="none"/>
+        <g clip-path="url(#sky)"><circle class="sun" cx="50" cy="60" r="23" fill="#F2BF45"/></g>
+        <line x1="18" y1="60" x2="82" y2="60" stroke="#8DBEEC" stroke-width="5" stroke-linecap="round"/>
+        <g class="glint" stroke="#F2BF45" stroke-width="5" stroke-linecap="round">
+          <line x1="33" y1="72" x2="67" y2="72"/>
+          <line x1="42" y1="82" x2="58" y2="82"/>
+        </g>
+      </svg>
+      <span class="word">WeGoTravel</span>
+    </div>
     <div class="splash-bar"></div>
   </div>
 
