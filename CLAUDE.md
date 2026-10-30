@@ -165,7 +165,20 @@ compatível — instruções em `third_party/firebase_core_web/PATCH.md`.
 - Espaçamento e raio saem de `Gap` e `Radii` (`lib/core/theme/app_tokens.dart`),
   nunca números soltos. `Gap.vMd` é um `SizedBox` pronto.
 - `lib/core/extensions/context_ext.dart` dá `context.text`, `context.colors`,
-  `context.isMobile`, `context.reduceMotion`.
+  `context.isMobile`, `context.reduceMotion` e as cores de papel abaixo.
+- Cada cor tem um papel (`lib/core/theme/app_colors.dart`): `AppColors.night`
+  é a tinta e o botão principal (`context.action`); o azul do céu
+  (`colors.primary`) é o que se toca — link, foco, seleção, progresso;
+  `context.sun` marca o agora (hoje, a próxima atividade, a aba aberta) e leva
+  texto `night` por cima; `context.success` é pago; `context.debt` é o que se
+  deve. Tudo chapado: degradê só como véu sobre imagem.
+- Fira Sans em tudo. Número que se compara (dinheiro, hora, data curta) usa
+  `AppTypography.money`/`numeric`, que ligam os algarismos tabulares. Nada de
+  rótulo em caixa-alta.
+- As quatro ilustrações de `assets/images/cover_*.jpg` aparecem **uma vez
+  cada**, a pedido do dono do projeto: avião no login, mundo na lista de
+  viagens, estrada no Resumo, praia na conta. Tela nova não reaproveita
+  nenhuma — a de nova senha desenha o próprio horizonte.
 - `AppDestination` (`lib/app/destinations.dart`) é a fonte única da navegação:
   alimenta a barra inferior, o rail e a sidebar de uma vez.
 - O corte entre bottom sheet e diálogo é 700px (`Breakpoints.tablet`).
