@@ -12,10 +12,22 @@ extension ContextX on BuildContext {
   EdgeInsets get safePadding => MediaQuery.paddingOf(this);
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
 
-  /// Verde de "pago", "quitada", "a receber". Separado do destaque, que é
-  /// vermelho: com um só, "quitada" se leria como erro.
+  /// Verde do mar: "pago", "quitada", "a receber".
   Color get success => isDark ? AppColors.darkSuccess : AppColors.success;
   Color get successSoft => isDark ? AppColors.darkSuccessSoft : AppColors.successSoft;
+
+  /// Coral do fim de tarde: o que você deve. Atenção, não erro.
+  Color get debt => isDark ? AppColors.darkCoral : AppColors.coral;
+  Color get debtSoft => isDark ? AppColors.darkCoralSoft : AppColors.coralSoft;
+
+  /// O sol marca o agora — hoje, a próxima atividade, a aba aberta. É o
+  /// mesmo amarelo nos dois temas; texto por cima dele é sempre azul-noite.
+  Color get sun => AppColors.sun;
+  Color get sunSoft => isDark ? AppColors.darkSunSoft : AppColors.sunSoft;
+
+  /// O fundo do botão principal: azul-noite no claro, céu claro no escuro.
+  Color get action => isDark ? AppColors.darkAction : AppColors.night;
+  Color get onAction => isDark ? AppColors.darkBackground : Colors.white;
 
   ScreenSize get breakpoint => Breakpoints.of(this);
   bool get isMobile => breakpoint == ScreenSize.mobile;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/extensions/context_ext.dart';
 
-/// O botão de criar do cabeçalho da página: quadrado verde com "+" no
+/// O botão de criar do cabeçalho da página: quadrado azul-noite com "+" no
 /// celular, com o rótulo escrito a partir do tablet.
 class AddButton extends StatelessWidget {
   const AddButton({super.key, required this.label, required this.onPressed});
@@ -16,8 +16,12 @@ class AddButton extends StatelessWidget {
       return IconButton.filled(
         tooltip: label,
         onPressed: onPressed,
-        style: IconButton.styleFrom(fixedSize: const Size(40, 40)),
-        icon: const Icon(Icons.add, size: 20),
+        style: IconButton.styleFrom(
+          fixedSize: const Size(44, 44),
+          backgroundColor: context.action,
+          foregroundColor: context.onAction,
+        ),
+        icon: const Icon(Icons.add, size: 22),
       );
     }
     return FilledButton.icon(

@@ -13,7 +13,7 @@ import '../../../shared/widgets/domain/category_badge.dart';
 import '../controllers/money_controllers.dart';
 
 /// Uma conta como linha da lista: nome, "Hospedagem, parcela 2/6, vence
-/// 12/10" embaixo e o valor em mono à direita.
+/// 12/10" embaixo e o valor à direita, com algarismos tabulares.
 ///
 /// Vive dentro de um cartão único, separada das vizinhas por divisórias —
 /// quem desenha o cartão e as divisórias é a lista.
@@ -62,17 +62,20 @@ class BillRow extends ConsumerWidget {
               children: [
                 Text(
                   Money.format(summary.totalCents),
-                  style: AppTypography.money(size: 14, color: context.colors.onSurface),
+                  style: AppTypography.money(size: 14.5, color: context.colors.onSurface),
                 ),
                 if (summary.isSettled)
                   Text(
                     'quitada',
-                    style: context.text.labelSmall?.copyWith(color: context.success),
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.success,
+                      fontWeight: FontWeight.w600,
+                    ),
                   )
                 else if (summary.shareCount > 0 && summary.paidCents > 0)
                   Text(
                     'falta ${Money.format(summary.pendingCents)}',
-                    style: AppTypography.mono(size: 11, color: muted),
+                    style: AppTypography.numeric(size: 12, color: muted),
                   ),
               ],
             ),

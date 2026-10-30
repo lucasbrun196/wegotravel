@@ -24,13 +24,14 @@ abstract final class Gap {
   static const vXxl = SizedBox(height: xxl);
 }
 
-/// Cantos arredondados e amigáveis. Botões e campos usam `md`, cartões
-/// `lg`, painéis de destaque `xl`.
+/// Cantos com hierarquia: quanto maior a peça, mais redondo. Etiquetas usam
+/// `sm`, botões e campos `md`, cartões e listas `lg`, painéis com
+/// ilustração `xl`.
 abstract final class Radii {
-  static const sm = 8.0;
-  static const md = 12.0;
-  static const lg = 16.0;
-  static const xl = 22.0;
+  static const sm = 6.0;
+  static const md = 10.0;
+  static const lg = 14.0;
+  static const xl = 20.0;
   static const pill = 999.0;
 
   static const brSm = BorderRadius.all(Radius.circular(sm));
@@ -42,8 +43,9 @@ abstract final class Radii {
 
 /// Durações e curvas padronizadas — animação inconsistente parece bug.
 ///
-/// Interação responde rápido; o que entra em cena pode ter um leve
-/// "quique" ([spring]), que é o que dá o ar alegre sem cansar.
+/// Interação responde rápido. O que entra em cena desacelera longo, como
+/// um avião pousando ([enter]); seleção pode passar um fio do alvo e
+/// voltar ([spring]), sem quicar.
 abstract final class Motion {
   static const instant = Duration(milliseconds: 100);
   static const fast = Duration(milliseconds: 180);
@@ -57,10 +59,11 @@ abstract final class Motion {
   /// Intervalo entre os blocos de uma página que entram em sequência.
   static const stagger = Duration(milliseconds: 55);
 
-  static const enter = Curves.easeOutCubic;
+  /// Desacelera até parar, sem tranco no fim.
+  static const enter = Cubic(0.2, 0.8, 0.2, 1);
   static const exit = Curves.easeInCubic;
 
-  /// Passa um pouco do alvo e volta: para entradas e seleções.
-  static const spring = Curves.easeOutBack;
+  /// Passa um fio do alvo e volta: para seleções e o que cresce.
+  static const spring = Cubic(0.3, 1.2, 0.4, 1);
   static const smooth = Curves.easeInOutCubic;
 }

@@ -328,7 +328,7 @@ class _Facts extends StatelessWidget {
           icon: Icons.nightlight_round,
           label: 'Pôr do sol',
           value: Fmt.time(day.sunset!),
-          color: AppColors.grape,
+          color: AppColors.plum,
         ),
     ];
 
@@ -446,7 +446,7 @@ class _HourStrip extends StatelessWidget {
                 ),
                 Text(
                   hour.precipProbability == null ? '—' : '${hour.precipProbability}%',
-                  style: AppTypography.mono(size: 11, color: context.colors.onSurfaceVariant),
+                  style: AppTypography.numeric(size: 11, color: context.colors.onSurfaceVariant),
                 ),
               ],
             ),

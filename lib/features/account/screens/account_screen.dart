@@ -279,7 +279,7 @@ class _Backdrop extends StatelessWidget {
         Transform.flip(
           flipX: true,
           child: Image.asset(
-            'assets/images/account_cover.jpg',
+            'assets/images/cover_beach.jpg',
             fit: BoxFit.cover,
             // Puxa para baixo: o horizonte com o sol precisa sobrar acima
             // do cartão de perfil; a areia some no esmaecido.
@@ -319,7 +319,7 @@ class _Fact extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: Gap.md, vertical: 6),
       decoration: BoxDecoration(
-        color: context.isDark ? AppColors.darkChip : AppColors.chip,
+        color: context.colors.surfaceContainerHigh,
         borderRadius: Radii.brPill,
       ),
       child: Row(

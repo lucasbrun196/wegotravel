@@ -235,7 +235,7 @@ class _BillHeader extends ConsumerWidget {
             Text(
               '${bill.installmentCount}x de ${Money.format(bill.effectiveInstallmentCents)}, '
               '${Money.format(bill.perPersonPerInstallmentCents)} por pessoa',
-              style: AppTypography.mono(size: 12, color: muted),
+              style: AppTypography.numeric(size: 13, color: muted),
             ),
           if (summary.shareCount > 0) ...[
             Gap.vLg,
@@ -248,7 +248,7 @@ class _BillHeader extends ConsumerWidget {
                     summary.isSettled
                         ? 'Quitada'
                         : '${Money.format(summary.pendingCents)} em aberto',
-                    style: AppTypography.mono(
+                    style: AppTypography.numeric(
                       size: 12,
                       color: summary.isSettled ? context.success : muted,
                     ),
@@ -258,7 +258,7 @@ class _BillHeader extends ConsumerWidget {
                 ),
                 Text(
                   Fmt.percent(summary.progress),
-                  style: AppTypography.mono(size: 12, color: muted),
+                  style: AppTypography.numeric(size: 12, color: muted),
                 ),
               ],
             ),
@@ -396,7 +396,7 @@ class _MemberShareRow extends ConsumerWidget {
                     if (bill.isInstallment)
                       Text(
                         '$paid/${shares.length} parcelas',
-                        style: AppTypography.mono(
+                        style: AppTypography.numeric(
                           size: 11,
                           color: context.colors.onSurfaceVariant,
                         ),
@@ -477,7 +477,7 @@ class _InstallmentBox extends StatelessWidget {
                 ? Icon(Icons.check, size: 16, color: fg)
                 : Text(
                     '${share.installmentNumber}',
-                    style: AppTypography.mono(size: 12, color: fg),
+                    style: AppTypography.numeric(size: 12, color: fg),
                   ),
           ),
         ),

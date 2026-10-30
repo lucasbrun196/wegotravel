@@ -58,7 +58,7 @@ class TripSettingsScreen extends ConsumerWidget {
                 const Divider(),
                 _Row(
                   label: 'Datas',
-                  mono: true,
+                  numeric: true,
                   value: trip.hasDates
                       ? Fmt.dateRange(trip.startDate!, trip.endDate!)
                       : 'não definidas',
@@ -66,7 +66,7 @@ class TripSettingsScreen extends ConsumerWidget {
                 const Divider(),
                 _Row(
                   label: 'Orçamento',
-                  mono: true,
+                  numeric: true,
                   value: trip.budgetCents == null ? '—' : Money.format(trip.budgetCents!),
                 ),
               ],
@@ -240,14 +240,14 @@ class _Row extends StatelessWidget {
   const _Row({
     required this.label,
     required this.value,
-    this.mono = false,
+    this.numeric = false,
   });
 
   final String label;
   final String value;
 
-  /// Datas e valores vão em mono, como no resto do app.
-  final bool mono;
+  /// Datas e valores levam algarismos tabulares, como no resto do app.
+  final bool numeric;
 
   @override
   Widget build(BuildContext context) {
@@ -264,8 +264,12 @@ class _Row extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: mono
-                  ? AppTypography.mono(size: 13, color: context.colors.onSurface)
+              style: numeric
+                  ? AppTypography.numeric(
+                      size: 14,
+                      weight: FontWeight.w500,
+                      color: context.colors.onSurface,
+                    )
                   : context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
@@ -328,7 +332,7 @@ class _MemberTile extends ConsumerWidget {
                   if (member.pixKey != null && member.pixKey!.isNotEmpty)
                     Text(
                       'PIX ${member.pixKey!}',
-                      style: AppTypography.mono(size: 12, color: context.colors.onSurfaceVariant),
+                      style: AppTypography.numeric(size: 12, color: context.colors.onSurfaceVariant),
                       overflow: TextOverflow.ellipsis,
                     ),
                 ],

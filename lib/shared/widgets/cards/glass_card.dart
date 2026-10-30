@@ -5,12 +5,13 @@ import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 
-/// Cartão base do app: superfície, borda de 1px, cantos de 16px.
+/// Cartão base do app: superfície, borda de 1px, cantos [Radii.lg].
 ///
-/// Em repouso tem uma sombra quase imperceptível. Quando é interativo e o
-/// mouse passa por cima, ele sobe 3px, ganha um halo coral e a borda se
-/// tinge de coral; ao ser pressionado, encolhe 1%. Os três juntos dizem
-/// "isto é clicável" sem precisar de ícone.
+/// Em repouso é chapado, sem sombra: a borda basta para separar do fundo.
+/// Quando é interativo e o mouse passa por cima, ele sobe 2px, ganha uma
+/// sombra azul-noite e a borda se tinge de azul; ao ser pressionado,
+/// encolhe 1%. Os três juntos dizem "isto é clicável" sem precisar de
+/// ícone.
 class GlassCard extends StatefulWidget {
   const GlassCard({
     super.key,
@@ -54,20 +55,14 @@ class _GlassCardState extends State<GlassCard> {
     Widget content = AnimatedContainer(
       duration: Motion.fast,
       curve: Motion.enter,
-      transform: Matrix4.translationValues(0, lifted ? -3 : 0, 0),
+      transform: Matrix4.translationValues(0, lifted ? -2 : 0, 0),
       decoration: BoxDecoration(
         color: widget.color ?? context.colors.surface,
         borderRadius: widget.borderRadius,
         border: Border.all(
-          color: lifted ? context.colors.primary.withValues(alpha: 0.45) : border,
+          color: lifted ? context.colors.primary.withValues(alpha: 0.5) : border,
         ),
-        boxShadow: !widget.showShadow
-            ? const []
-            : lifted
-                ? AppColors.lift(dark: context.isDark)
-                : context.isDark
-                    ? const []
-                    : AppColors.softShadow,
+        boxShadow: widget.showShadow && lifted ? AppColors.lift(dark: context.isDark) : const [],
       ),
       // O `Material` é filho do container para o realce do toque ficar
       // **por cima** do fundo do cartão — o do cartão inteiro e o das linhas

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/extensions/context_ext.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
@@ -236,7 +235,6 @@ class _SingleHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.isDark;
     final text = date == null
         ? '—'
         : DateFormat("EEEE, d 'de' MMMM 'de' y", 'pt_BR').format(date!);
@@ -244,15 +242,7 @@ class _SingleHeader extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xl, Gap.xl, Gap.lg),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? const [Color(0xFF3A2220), Color(0xFF2E2219)]
-              : const [AppColors.coralSoft, AppColors.sunsetSoft],
-        ),
-      ),
+      color: context.colors.primaryContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -292,19 +282,9 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.isDark;
-
     return Container(
       padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xl, Gap.xl, Gap.lg),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: dark
-              ? const [Color(0xFF3A2220), Color(0xFF2E2219)]
-              : const [AppColors.coralSoft, AppColors.sunsetSoft],
-        ),
-      ),
+      color: context.colors.primaryContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -621,19 +601,17 @@ class _DayCellState extends State<_DayCell> {
                 height: isEdge ? 38 : 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: isEdge ? AppColors.sunsetGradient : null,
                   color: isEdge
-                      ? null
+                      ? colors.primary
                       : _hovered && widget.enabled && !inRange
                           ? colors.surfaceContainerHigh
                           : Colors.transparent,
                   border: isToday && !isEdge ? Border.all(color: colors.primary, width: 1.5) : null,
-                  boxShadow: isEdge ? AppColors.glow(AppColors.coral, opacity: 0.35, blur: 10, y: 3) : null,
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   '${day.day}',
-                  style: AppTypography.mono(
+                  style: AppTypography.numeric(
                     size: 13,
                     weight: isEdge || isToday ? FontWeight.w700 : FontWeight.w400,
                     color: textColor,

@@ -497,7 +497,7 @@ class _TimeRow extends StatelessWidget {
         ),
         child: Text(
           startTime!.format(context),
-          style: AppTypography.mono(size: 14, color: context.colors.onSurface),
+          style: AppTypography.numeric(size: 14, color: context.colors.onSurface),
         ),
       ),
     );

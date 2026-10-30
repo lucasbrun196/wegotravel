@@ -33,7 +33,10 @@ class MemberAvatar extends StatelessWidget {
 }
 
 /// O círculo de iniciais, para quem não é `Member` — a conta logada, por
-/// exemplo. Sem [color], usa o destaque.
+/// exemplo. Sem [color], usa o azul do céu.
+///
+/// Fundo chapado: o tom claro da cor da pessoa, já misturado à superfície,
+/// para o círculo ficar igual sobre qualquer fundo.
 class InitialsAvatar extends StatelessWidget {
   const InitialsAvatar({
     super.key,
@@ -41,6 +44,8 @@ class InitialsAvatar extends StatelessWidget {
     this.size = 32,
     this.selected = false,
     this.color,
+    this.background,
+    this.foreground,
   });
 
   final String initials;
@@ -48,11 +53,19 @@ class InitialsAvatar extends StatelessWidget {
   final bool selected;
   final Color? color;
 
+  /// Fundo e texto explícitos, para fundos que não são a superfície — a
+  /// barra azul-noite, por exemplo.
+  final Color? background;
+  final Color? foreground;
+
   @override
   Widget build(BuildContext context) {
-    final base = color ?? AppColors.coral;
+    final base = color ?? AppColors.sky;
     final dark = context.isDark;
-    final fg = dark ? Color.lerp(base, Colors.white, 0.35)! : Color.lerp(base, Colors.black, 0.25)!;
+    final fill = background ??
+        Color.alphaBlend(base.withValues(alpha: dark ? 0.30 : 0.16), context.colors.surface);
+    final fg = foreground ??
+        (dark ? Color.lerp(base, Colors.white, 0.45)! : Color.lerp(base, Colors.black, 0.3)!);
 
     return AnimatedContainer(
       duration: Motion.normal,
@@ -60,14 +73,7 @@ class InitialsAvatar extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            base.withValues(alpha: dark ? 0.32 : 0.18),
-            base.withValues(alpha: dark ? 0.20 : 0.30),
-          ],
-        ),
+        color: fill,
         shape: BoxShape.circle,
         border: selected ? Border.all(color: base, width: 2) : null,
       ),

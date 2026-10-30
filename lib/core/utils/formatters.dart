@@ -25,6 +25,12 @@ abstract final class Fmt {
   /// atravessa o réveillon, e "27/12 — 03/01" esconde justamente isso.
   static String dateRange(DateTime start, DateTime end) =>
       '${dateShortWithYear(start)} – ${dateShortWithYear(end)}';
+
+  /// "27 dez"; com o ano quando não é o corrente: "3 jan 2027".
+  static String dayMonth(DateTime d) {
+    final base = DateFormat('d MMM', 'pt_BR').format(d).replaceAll('.', '');
+    return d.year == DateTime.now().year ? base : '$base ${d.year}';
+  }
   static String weekday(DateTime d) => DateFormat('EEEE', 'pt_BR').format(d);
   static String weekdayShort(DateTime d) => DateFormat('E', 'pt_BR').format(d).replaceAll('.', '');
   static String monthShort(DateTime d) => DateFormat('MMM', 'pt_BR').format(d).replaceAll('.', '');

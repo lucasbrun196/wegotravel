@@ -37,7 +37,7 @@ class Member {
     AppColors.coral,
     AppColors.turquoise,
     AppColors.sunset,
-    AppColors.grape,
+    AppColors.plum,
     AppColors.sky,
     AppColors.palm,
   ];
