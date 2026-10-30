@@ -174,9 +174,9 @@ class _ToastCardState extends State<_ToastCard> with SingleTickerProviderStateMi
               liveRegion: true,
               child: Material(
                 color: background,
-                elevation: 6,
-                shadowColor: Colors.black54,
-                borderRadius: Radii.brMd,
+                elevation: 8,
+                shadowColor: AppColors.night.withValues(alpha: 0.6),
+                borderRadius: Radii.brLg,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(Gap.lg, Gap.sm, Gap.xs, Gap.sm),
                   child: Row(

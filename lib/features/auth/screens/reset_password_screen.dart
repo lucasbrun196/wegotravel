@@ -90,6 +90,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthLayout(
+      illustrated: false,
       child: FutureBuilder<String>(
         future: _email,
         builder: (context, snapshot) {
@@ -120,9 +121,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Nova senha', style: context.text.headlineSmall),
+          Text('Nova senha', style: context.text.headlineLarge),
           Gap.vXs,
-          Text('Para a conta $email', style: context.text.bodySmall),
+          Text(
+            'Para a conta $email',
+            style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
+          ),
           Gap.vXl,
           TextFormField(
             controller: _passwordController,
@@ -198,7 +202,7 @@ class _InvalidLink extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('Link inválido', style: context.text.headlineSmall),
+        Text('Link inválido', style: context.text.headlineLarge),
         Gap.vLg,
         ErrorBanner(message: message),
         Gap.vXl,

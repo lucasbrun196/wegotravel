@@ -18,7 +18,7 @@ enum WeatherCondition {
   rain(label: 'Chuva', icon: Icons.umbrella_rounded, color: AppColors.sky),
   heavyRain(label: 'Chuva forte', icon: Icons.water_drop_rounded, color: AppColors.deepSea),
   snow(label: 'Neve', icon: Icons.ac_unit_rounded, color: AppColors.turquoise),
-  storm(label: 'Tempestade', icon: Icons.thunderstorm_rounded, color: AppColors.grape);
+  storm(label: 'Tempestade', icon: Icons.thunderstorm_rounded, color: AppColors.plum);
 
   const WeatherCondition({required this.label, required this.icon, required this.color});
 
@@ -137,7 +137,7 @@ class DailyWeather {
     }
     if (p < 20) return 'Não deve chover';
     if (p < 50) return 'Chuva pouco provável';
-    if (p < 80) return 'Pode chover — leve guarda-chuva';
+    if (p < 80) return 'Pode chover, leve guarda-chuva';
     return 'Deve chover';
   }
 

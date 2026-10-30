@@ -46,7 +46,7 @@ class AppPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final topPad = context.isMobile ? Gap.xl : Gap.xxl;
+    final topPad = context.isMobile ? Gap.md : Gap.xxl;
 
     final defaultHeader = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -56,15 +56,20 @@ class AppPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: context.isMobile ? context.text.headlineMedium : context.text.displaySmall,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              Semantics(
+                header: true,
+                child: Text(
+                  title,
+                  style: context.isMobile ? context.text.headlineLarge : context.text.displaySmall,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               if (subtitle != null) ...[
                 Gap.vXs,
-                Text(subtitle!, style: context.text.bodySmall),
+                Text(subtitle!, style: context.text.bodyMedium?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                )),
               ],
             ],
           ),

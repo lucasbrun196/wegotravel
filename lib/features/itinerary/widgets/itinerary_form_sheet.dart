@@ -349,7 +349,7 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
                     textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
                       labelText: 'Endereço',
-                      hintText: 'Opcional — rua, referência, ponto de encontro',
+                      hintText: 'Opcional: rua, referência, ponto de encontro',
                       prefixIcon: Icon(Icons.signpost_outlined, size: 20),
                     ),
                   ),
@@ -389,7 +389,7 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
                     ],
                   ),
                   Text(
-                    'Ligue quantas contas quiser — todas entram nas estatísticas '
+                    'Ligue quantas contas quiser. Todas entram nas estatísticas '
                     'do roteiro',
                     style: context.text.bodySmall,
                   ),
@@ -416,7 +416,7 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
                     keyboardType: TextInputType.url,
                     decoration: const InputDecoration(
                       labelText: 'Link',
-                      hintText: 'Opcional — reserva, mapa, site',
+                      hintText: 'Opcional: reserva, mapa, site',
                       prefixIcon: Icon(Icons.link_rounded, size: 20),
                     ),
                   ),
@@ -427,7 +427,7 @@ class _ItineraryFormSheetState extends ConsumerState<ItineraryFormSheet> {
                     textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
                       labelText: 'Observações',
-                      hintText: 'Opcional — levar protetor, chegar cedo...',
+                      hintText: 'Opcional: levar protetor, chegar cedo…',
                     ),
                   ),
                 ],
@@ -497,7 +497,7 @@ class _TimeRow extends StatelessWidget {
         ),
         child: Text(
           startTime!.format(context),
-          style: AppTypography.mono(size: 14, color: context.colors.onSurface),
+          style: AppTypography.numeric(size: 14, color: context.colors.onSurface),
         ),
       ),
     );

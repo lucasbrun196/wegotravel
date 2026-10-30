@@ -291,7 +291,7 @@ class _MapPickerSheetState extends ConsumerState<MapPickerSheet>
       onSubmitted: _runSearch,
       decoration: InputDecoration(
         labelText: 'Buscar',
-        hintText: 'Praia da Joaquina, Rua Bocaiúva...',
+        hintText: 'Praia da Joaquina, Rua Bocaiúva…',
         prefixIcon: const Icon(Icons.search_rounded, size: 20),
         suffixIcon: _searching
             ? const Padding(
@@ -680,7 +680,7 @@ class _Selection extends StatelessWidget {
             Gap.hMd,
             Expanded(
               child: Text(
-                'Toque no mapa para marcar o ponto — ou busque pelo nome ali em cima.',
+                'Toque no mapa para marcar o ponto ou busque pelo nome ali em cima.',
                 style: context.text.bodySmall,
               ),
             ),

@@ -12,7 +12,7 @@ import '../../../core/utils/money.dart';
 import '../../../data/models/bill.dart';
 import '../../../data/models/bill_share.dart';
 import '../../../shared/widgets/cards/glass_card.dart';
-import '../../../shared/widgets/effects/grid_backdrop.dart';
+import '../../../shared/widgets/cards/tinted_panel.dart';
 import '../../../shared/widgets/feedback/animated_counter.dart';
 import '../../../shared/widgets/effects/fade_slide_in.dart';
 import '../../../shared/widgets/feedback/empty_state.dart';
@@ -71,7 +71,8 @@ class ExpensesScreen extends ConsumerWidget {
   }
 }
 
-/// O número que importa para quem abriu a tela, em destaque verde suave.
+/// O número que importa para quem abriu a tela. Coral enquanto há o que
+/// pagar; quando zera, o painel passa devagar para o verde do mar.
 class _YouOweCard extends ConsumerWidget {
   const _YouOweCard();
 
@@ -84,7 +85,7 @@ class _YouOweCard extends ConsumerWidget {
       for (final b in ref.watch(billsProvider).valueOrNull ?? const <Bill>[]) b.id: b,
     };
     final next = pending.isEmpty ? null : pending.first;
-    final accent = context.colors.primary;
+    final tone = iOwe > 0 ? context.debt : context.success;
 
     final nextLine = next == null
         ? 'Nada pendente'
@@ -95,34 +96,66 @@ class _YouOweCard extends ConsumerWidget {
               'parcela ${next.installmentNumber}/${bills[next.billId]!.installmentCount}',
             if (next.dueDate != null) 'vence ${Fmt.dateShort(next.dueDate!)}',
             Money.format(next.remainingCents),
-          ].join(' · ');
+          ].join(', ');
 
-    return GridBackdrop(
-      padding: const EdgeInsets.all(Gap.xl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Você deve', style: context.text.labelSmall?.copyWith(color: accent)),
-          Gap.vXs,
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: AnimatedMoney(iOwe / 100, style: AppTypography.money(size: 34, color: accent)),
+    final owe = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Você deve',
+          style: context.text.labelLarge?.copyWith(color: tone, fontWeight: FontWeight.w600),
+        ),
+        Gap.vXs,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: AnimatedMoney(
+            iOwe / 100,
+            style: AppTypography.money(size: 36, weight: FontWeight.w700, color: tone),
           ),
-          Gap.vXs,
-          Text(
-            nextLine,
-            style: context.text.bodySmall?.copyWith(
-              color: next?.isOverdue ?? false ? AppColors.danger : accent,
-            ),
+        ),
+        Gap.vXs,
+        Text(
+          nextLine,
+          style: context.text.bodySmall?.copyWith(
+            color: next?.isOverdue ?? false ? AppColors.danger : context.colors.onSurface,
+            fontWeight: next?.isOverdue ?? false ? FontWeight.w600 : null,
           ),
-          if (owedToMe > 0)
-            Text(
-              'A receber: ${Money.format(owedToMe)}',
-              style: context.text.bodySmall?.copyWith(color: accent),
-            ),
-        ],
-      ),
+        ),
+      ],
+    );
+
+    final receive = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'A receber',
+          style: context.text.labelLarge?.copyWith(
+            color: context.success,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Gap.vXs,
+        Text(
+          Money.format(owedToMe),
+          style: AppTypography.money(size: 22, color: context.success),
+        ),
+      ],
+    );
+
+    return TintedPanel(
+      color: iOwe > 0 ? context.debtSoft : context.successSoft,
+      child: owedToMe <= 0
+          ? owe
+          : context.isNarrow
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [owe, Gap.vLg, receive],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [Expanded(child: owe), Gap.hXl, receive],
+                ),
     );
   }
 }

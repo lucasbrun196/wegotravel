@@ -39,7 +39,7 @@ enum BillStatus {
 
 /// Categoria da conta — usada para agrupar, colorir e dar ícone.
 enum BillCategory {
-  lodging(label: 'Hospedagem', icon: Icons.hotel_rounded, color: AppColors.grape),
+  lodging(label: 'Hospedagem', icon: Icons.hotel_rounded, color: AppColors.plum),
   fuel(label: 'Gasolina', icon: Icons.local_gas_station_rounded, color: AppColors.sunset),
   food(label: 'Alimentação', icon: Icons.restaurant_rounded, color: AppColors.coral),
   breakfast(label: 'Café', icon: Icons.free_breakfast_rounded, color: AppColors.sunset),

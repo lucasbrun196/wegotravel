@@ -57,7 +57,7 @@ class ItineraryRow extends ConsumerWidget {
     final place = [
       item.placeName,
       item.address,
-    ].where((s) => s != null && s.isNotEmpty).join(' · ');
+    ].where((s) => s != null && s.isNotEmpty).join(', ');
 
     final tags = <Widget>[
       // Só entra na lista quando pode aparecer: o botão se esconde sozinho,
@@ -179,7 +179,11 @@ class _TimeColumn extends StatelessWidget {
     final strong = faded ? AppColors.inkFaint : context.colors.onSurface;
     final soft = faded ? AppColors.inkFaint : context.colors.onSurfaceVariant;
 
-    final startStyle = AppTypography.mono(size: 13, color: strong);
+    final startStyle = AppTypography.numeric(
+      size: 13.5,
+      weight: faded ? FontWeight.w400 : FontWeight.w600,
+      color: strong,
+    );
     if (start == null || end == null || end == start) {
       // A altura de linha centraliza a hora com o selo de categoria (32px).
       return Text(
@@ -211,7 +215,7 @@ class _TimeColumn extends StatelessWidget {
               ),
             ),
           ),
-          Text(Fmt.time(end), style: AppTypography.mono(size: 12, color: soft)),
+          Text(Fmt.time(end), style: AppTypography.numeric(size: 12, color: soft)),
         ],
       ),
     );
@@ -382,7 +386,7 @@ class _LinkChip extends StatelessWidget {
       child: const ItineraryChip(
         label: 'Abrir link',
         icon: Icons.open_in_new,
-        color: AppColors.grape,
+        color: AppColors.plum,
       ),
     );
   }

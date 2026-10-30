@@ -153,7 +153,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           children: [
             Text(
               _isSignUp ? 'Criar conta' : 'Entrar',
-              style: context.text.headlineSmall,
+              style: context.text.headlineLarge,
+            ),
+            Gap.vXs,
+            Text(
+              _isSignUp
+                  ? 'Seu nome, o e-mail e uma senha de pelo menos 6 caracteres.'
+                  : 'Com e-mail e senha ou com a sua conta Google.',
+              style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
             ),
             Gap.vXl,
 
@@ -344,11 +351,11 @@ class _ForgotPasswordFormState extends ConsumerState<_ForgotPasswordForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Esqueci minha senha', style: context.text.headlineSmall),
+          Text('Esqueci minha senha', style: context.text.headlineLarge),
           Gap.vXs,
           Text(
             'Digite o e-mail da sua conta e enviamos um link para criar uma senha nova.',
-            style: context.text.bodySmall,
+            style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
           ),
           Gap.vXl,
           TextFormField(
@@ -436,7 +443,7 @@ class _ForgotPasswordFormState extends ConsumerState<_ForgotPasswordForm> {
         Gap.vSm,
         TextButton(
           onPressed: () => setState(() => _sentTo = null),
-          child: const Text('Não recebi — enviar de novo'),
+          child: const Text('Não recebi, enviar de novo'),
         ),
       ],
     );

@@ -96,7 +96,7 @@ class _WeatherButton extends StatelessWidget {
               Gap.hXs,
               Text(
                 day.tempLabel,
-                style: AppTypography.mono(size: 12, weight: FontWeight.w600, color: muted),
+                style: AppTypography.numeric(size: 12, weight: FontWeight.w600, color: muted),
               ),
               Gap.hSm,
               // Em 320px o botão é o mais largo da linha, e sem o

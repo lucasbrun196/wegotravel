@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_tokens.dart';
 
-/// Selo de categoria: o ícone na cor dela, sobre um degradê suave da
-/// mesma cor. É o que dá cor às listas de contas e de atividades — e
+/// Selo de categoria: o ícone na cor dela, sobre o tom claro da mesma cor,
+/// chapado. É o que dá cor às listas de contas e de atividades — e
 /// identifica a categoria antes mesmo de ler o texto.
 class CategoryBadge extends StatelessWidget {
   const CategoryBadge({
@@ -32,20 +32,13 @@ class CategoryBadge extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * 0.32),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            base.withValues(alpha: dark ? 0.30 : 0.16),
-            base.withValues(alpha: dark ? 0.16 : 0.26),
-          ],
-        ),
+        borderRadius: BorderRadius.circular(size * 0.3),
+        color: Color.alphaBlend(base.withValues(alpha: dark ? 0.24 : 0.14), context.colors.surface),
       ),
       child: Icon(
         icon,
         size: size * 0.5,
-        color: dark ? Color.lerp(base, Colors.white, 0.25) : Color.lerp(base, Colors.black, 0.1),
+        color: dark ? Color.lerp(base, Colors.white, 0.3) : Color.lerp(base, Colors.black, 0.12),
       ),
     );
   }

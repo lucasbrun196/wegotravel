@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/extensions/context_ext.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../feedback/animated_counter.dart';
@@ -33,7 +32,7 @@ class StatCell {
   final int? cents;
   final String? footnote;
 
-  /// Fundo em degradê coral e texto coral: o número que pede atenção.
+  /// Fundo coral claro e texto coral: o número que pede atenção.
   final bool highlight;
 
   /// O ponto de cor ao lado do rótulo — identifica a coluna de relance.
@@ -115,24 +114,12 @@ class _Cell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = context.colors.primary;
+    final accent = context.debt;
     final textColor = cell.highlight ? accent : context.colors.onSurface;
     final labelColor = cell.highlight ? accent : context.colors.onSurfaceVariant;
 
-    final dark = context.isDark;
-
     return Container(
-      decoration: cell.highlight
-          ? BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: dark
-                    ? const [Color(0xFF3A2220), Color(0xFF2E2219)]
-                    : const [AppColors.coralSoft, AppColors.sunsetSoft],
-              ),
-            )
-          : null,
+      color: cell.highlight ? context.debtSoft : null,
       padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,11 +129,11 @@ class _Cell extends StatelessWidget {
             children: [
               if (cell.color != null) ...[
                 Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(color: cell.color, shape: BoxShape.circle),
+                  width: 3,
+                  height: 12,
+                  decoration: BoxDecoration(color: cell.color, borderRadius: Radii.brPill),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 7),
               ],
               Flexible(
                 child: Text(
@@ -176,7 +163,7 @@ class _Cell extends StatelessWidget {
             Gap.vXs,
             Text(
               cell.footnote!,
-              style: AppTypography.mono(size: 11, color: labelColor),
+              style: AppTypography.numeric(size: 12, color: labelColor),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),

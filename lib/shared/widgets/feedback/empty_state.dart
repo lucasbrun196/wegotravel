@@ -4,8 +4,8 @@ import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 
-/// Estado vazio: o ícone flutuando num círculo colorido, o que falta e o
-/// botão para resolver.
+/// Estado vazio: o ícone flutuando num círculo de céu claro, o que falta e
+/// o botão para resolver.
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -23,12 +23,12 @@ class EmptyState extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
-  /// Cor do círculo; sem ela, o coral do destaque.
+  /// Cor do círculo; sem ela, o azul do céu.
   final Color? accent;
 
   @override
   Widget build(BuildContext context) {
-    final color = accent ?? AppColors.coral;
+    final color = accent ?? context.colors.primary;
 
     return Center(
       child: ConstrainedBox(
@@ -44,16 +44,12 @@ class EmptyState extends StatelessWidget {
                   height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        color.withValues(alpha: context.isDark ? 0.30 : 0.14),
-                        color.withValues(alpha: context.isDark ? 0.15 : 0.26),
-                      ],
+                    color: Color.alphaBlend(
+                      color.withValues(alpha: context.isDark ? 0.22 : 0.12),
+                      context.colors.surface,
                     ),
                   ),
-                  child: Icon(icon, size: 32, color: color),
+                  child: Icon(icon, size: 30, color: color),
                 ),
               ),
               Gap.vLg,
@@ -76,7 +72,7 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// Sobe e desce 6px num ciclo de 3 segundos, para o vazio não parecer
+/// Sobe e desce 5px num ciclo de 4 segundos, para o vazio não parecer
 /// travado.
 class _Floating extends StatefulWidget {
   const _Floating({required this.child});
@@ -89,7 +85,7 @@ class _Floating extends StatefulWidget {
 
 class _FloatingState extends State<_Floating> with SingleTickerProviderStateMixin {
   late final AnimationController _controller =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 2000));
 
   @override
   void didChangeDependencies() {
@@ -113,7 +109,7 @@ class _FloatingState extends State<_Floating> with SingleTickerProviderStateMixi
       animation: _controller,
       child: widget.child,
       builder: (context, child) => Transform.translate(
-        offset: Offset(0, -6 * Curves.easeInOut.transform(_controller.value)),
+        offset: Offset(0, -5 * Curves.easeInOutSine.transform(_controller.value)),
         child: child,
       ),
     );

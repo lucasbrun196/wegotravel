@@ -46,7 +46,7 @@ class ItineraryScreen extends ConsumerWidget {
                 value: '${summary.done}/${summary.total}',
                 footnote: Fmt.percent(summary.progress),
               ),
-              StatCell(label: 'Dias', value: '${summary.days}', color: AppColors.grape),
+              StatCell(label: 'Dias', value: '${summary.days}', color: AppColors.plum),
               StatCell.money(
                 label: 'Contas ligadas',
                 color: AppColors.sunset,
@@ -129,8 +129,13 @@ class _SpendByCategory extends ConsumerWidget {
                           ),
                         ),
                         Expanded(
+                          // Na cor da categoria: a mesma do selo nas listas.
+                          // No escuro clareia um tom, como o ícone do selo.
                           child: AnimatedProgressBar(
                             value: total == 0 ? 0 : entry.value / total,
+                            color: context.isDark
+                                ? Color.lerp(entry.key.color, Colors.white, 0.3)
+                                : entry.key.color,
                           ),
                         ),
                         Gap.hLg,
@@ -295,20 +300,25 @@ class _DayHeader extends StatelessWidget {
                     ),
                     Gap.hXs,
                     Text(
-                      '${Fmt.weekdayShort(day.date)} ${Fmt.dateShort(day.date)}'.toUpperCase(),
-                      style: AppTypography.mono(
-                        size: 13,
-                        weight: FontWeight.w600,
-                        color: context.colors.onSurface,
+                      '${Fmt.weekdayShort(day.date)}, ${Fmt.dayMonth(day.date)}',
+                      style: context.text.titleMedium?.copyWith(
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                     if (day.isToday) ...[
                       Gap.hSm,
-                      Text(
-                        'hoje',
-                        style: context.text.labelSmall?.copyWith(
-                          color: context.colors.primary,
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: context.sun,
+                          borderRadius: Radii.brPill,
+                        ),
+                        child: Text(
+                          'hoje',
+                          style: context.text.labelSmall?.copyWith(
+                            color: AppColors.night,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -316,7 +326,7 @@ class _DayHeader extends StatelessWidget {
                     Flexible(
                       child: Text(
                         '$count ${count == 1 ? "atividade" : "atividades"}'
-                        '${day.doneCount > 0 ? " · ${day.doneCount} feitas" : ""}',
+                        '${day.doneCount > 0 ? ", ${day.doneCount} feitas" : ""}',
                         style: context.text.labelSmall,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

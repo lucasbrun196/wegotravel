@@ -235,7 +235,7 @@ class _BillFormSheetState extends ConsumerState<BillFormSheet> {
                   ),
                   Text(
                     _type == BillType.accumulating
-                        ? 'Vem marcado em cada lançamento — dá para trocar a cada vez'
+                        ? 'Vem marcado em cada lançamento, e dá para trocar a cada vez'
                         : 'Quem pagou e vai receber as transferências',
                     style: context.text.bodySmall,
                   ),
@@ -412,7 +412,7 @@ class _InstallmentSection extends StatelessWidget {
             Expanded(child: Text('Parcelamento', style: context.text.labelLarge)),
             Text(
               count == 1 ? 'À vista' : '${count}x',
-              style: AppTypography.mono(size: 13, color: context.colors.onSurface),
+              style: AppTypography.numeric(size: 13, color: context.colors.onSurface),
             ),
           ],
         ),
@@ -447,7 +447,7 @@ class _InstallmentSection extends StatelessWidget {
                     : Fmt.dateShortWithYear(firstDueDate!),
                 style: firstDueDate == null
                     ? context.text.bodyMedium?.copyWith(color: AppColors.inkFaint)
-                    : AppTypography.mono(size: 14, color: context.colors.onSurface),
+                    : AppTypography.numeric(size: 14, color: context.colors.onSurface),
               ),
             ),
           ),

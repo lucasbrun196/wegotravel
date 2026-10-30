@@ -18,11 +18,13 @@ import '../../../data/models/trip.dart';
 import '../../../shared/widgets/cards/glass_card.dart';
 import '../../../shared/widgets/domain/category_badge.dart';
 import '../../../shared/widgets/domain/member_avatar.dart';
-import '../../../shared/widgets/effects/grid_backdrop.dart';
+import '../../../shared/widgets/domain/trip_arc.dart';
+import '../../../shared/widgets/domain/trip_countdown.dart';
 import '../../../shared/widgets/feedback/animated_progress_bar.dart';
 import '../../../shared/widgets/layout/app_page.dart';
 import '../../../shared/widgets/layout/section_header.dart';
 import '../../../shared/widgets/layout/stat_strip.dart';
+import '../../../shared/widgets/media/parallax_image.dart';
 import '../../expenses/controllers/money_controllers.dart';
 import '../../expenses/widgets/bill_form_sheet.dart';
 import '../../itinerary/widgets/itinerary_details_sheet.dart';
@@ -41,7 +43,7 @@ class DashboardScreen extends ConsumerWidget {
 
     return AppPage(
       title: trip?.name ?? '',
-      header: trip == null ? null : _Hero(trip: trip, facts: _facts(trip, members.length)),
+      header: trip == null ? null : _Hero(trip: trip, members: members),
       children: [
         const _MoneyStrip(),
         Gap.vXl,
@@ -66,133 +68,213 @@ class DashboardScreen extends ConsumerWidget {
       ],
     );
   }
-
-  /// "Florianópolis, SC · 27/12/2026 – 03/01/2027 · 4 participantes"
-  static String _facts(Trip trip, int memberCount) => [
-        if (trip.destination.isNotEmpty) trip.destination,
-        if (trip.hasDates)
-          '${Fmt.dateShortWithYear(trip.startDate!)} – ${Fmt.dateShortWithYear(trip.endDate!)}',
-        if (memberCount > 0) '$memberCount ${memberCount == 1 ? "participante" : "participantes"}',
-      ].join(' · ');
 }
 
-/// O topo do Resumo: a contagem, o nome da viagem e a linha de fatos sobre
-/// o painel de grade.
+/// O topo do Resumo, como um cartão-postal: o nome da viagem e os fatos de
+/// um lado, a ilustração da estrada do outro. Embaixo do nome, o arco do sol
+/// mostra em que ponto da viagem a turma está.
 class _Hero extends StatelessWidget {
-  const _Hero({required this.trip, required this.facts});
+  const _Hero({required this.trip, required this.members});
 
   final Trip trip;
-  final String facts;
+  final List<Member> members;
 
   @override
   Widget build(BuildContext context) {
-    return GridBackdrop(
-      padding: EdgeInsets.all(context.isMobile ? Gap.xl : Gap.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CountdownTag(trip: trip),
-          Gap.vLg,
-          Text(
+    final mobile = context.isMobile;
+    final memberCount = members.length;
+
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
             trip.name,
-            style: context.isMobile ? context.text.headlineLarge : context.text.displayMedium,
+            style: mobile ? context.text.headlineLarge : context.text.displayMedium,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          if (facts.isNotEmpty) ...[
-            Gap.vSm,
-            Text(facts, style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant)),
+        ),
+        Gap.vMd,
+        Wrap(
+          spacing: Gap.lg,
+          runSpacing: Gap.xs,
+          children: [
+            if (trip.destination.isNotEmpty)
+              _Fact(icon: Icons.place_outlined, text: trip.destination),
+            if (trip.hasDates)
+              _Fact(
+                icon: Icons.event_outlined,
+                text: Fmt.dateRange(trip.startDate!, trip.endDate!),
+              ),
           ],
+        ),
+        if (memberCount > 0) ...[
+          Gap.vMd,
+          Row(
+            children: [
+              _AvatarStack(members: members),
+              Gap.hSm,
+              Text(
+                '$memberCount ${memberCount == 1 ? "pessoa" : "pessoas"}',
+                style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
+              ),
+            ],
+          ),
         ],
-      ),
+        SizedBox(height: mobile ? Gap.xl : Gap.xxl),
+        if (trip.hasDates)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: TripArc(trip: trip, height: mobile ? 76 : 92),
+          )
+        else
+          Align(alignment: Alignment.centerLeft, child: TripCountdown(trip: trip)),
+      ],
     );
-  }
-}
 
-/// A contagem da viagem numa etiqueta mono: "T–79 dias", "Dia 3/8".
-class _CountdownTag extends StatelessWidget {
-  const _CountdownTag({required this.trip});
-
-  final Trip trip;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = switch (trip) {
-      _ when !trip.hasDates => null,
-      _ when trip.daysUntilStart > 1 => 'T–${trip.daysUntilStart} dias',
-      _ when trip.daysUntilStart == 1 => 'T–1 dia',
-      _ when trip.isOngoing => 'Dia ${trip.currentDay}/${trip.totalDays}',
-      _ => 'Concluída',
-    };
-    if (label == null) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: Gap.xs),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: Radii.brSm,
-        border: Border.all(color: context.colors.outline),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!trip.isFinished) ...[const _PulseDot(), Gap.hSm],
-          Text(label, style: AppTypography.mono(size: 12, color: context.colors.onSurface)),
-        ],
-      ),
+    const image = ParallaxImage(
+      asset: 'assets/images/cover_road.jpg',
+      alignment: Alignment(0, -0.1),
     );
-  }
-}
 
-/// O ponto verde de "em andamento": pulsa devagar enquanto a viagem não
-/// acabou. Parado quando o sistema pede menos movimento.
-class _PulseDot extends StatefulWidget {
-  const _PulseDot();
+    final decoration = BoxDecoration(
+      color: context.colors.surface,
+      borderRadius: Radii.brXl,
+      border: Border.all(color: context.colors.outline),
+    );
 
-  @override
-  State<_PulseDot> createState() => _PulseDotState();
-}
-
-class _PulseDotState extends State<_PulseDot> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (context.reduceMotion) {
-      _controller.value = 1;
-    } else if (!_controller.isAnimating) {
-      _controller.repeat(reverse: true);
+    if (mobile) {
+      return Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: decoration,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 168, child: image),
+            Padding(padding: const EdgeInsets.all(Gap.xl), child: details),
+          ],
+        ),
+      );
     }
-  }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final imageWidth = (constraints.maxWidth * 0.36).clamp(260.0, 440.0);
 
-  @override
-  Widget build(BuildContext context) {
-    final color = context.colors.primary;
-
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        final t = Curves.easeInOut.transform(_controller.value);
         return Container(
-          width: 7,
-          height: 7,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(color: color.withValues(alpha: 0.35 * t), blurRadius: 0, spreadRadius: 3 * t),
+          clipBehavior: Clip.antiAlias,
+          decoration: decoration,
+          child: Stack(
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 300),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(Gap.xxl, Gap.xxl, imageWidth + Gap.xxl, Gap.xl),
+                  child: details,
+                ),
+              ),
+              Positioned(top: 0, right: 0, bottom: 0, width: imageWidth, child: image),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+/// A turma em círculos sobrepostos, como numa foto em grupo. Mostra até
+/// cinco; o resto vira "+N".
+class _AvatarStack extends StatelessWidget {
+  const _AvatarStack({required this.members});
+
+  final List<Member> members;
+
+  static const _size = 30.0;
+  static const _step = 25.0;
+  static const _max = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = members.take(_max).toList();
+    final extra = members.length - shown.length;
+    final count = shown.length + (extra > 0 ? 1 : 0);
+    // O anel da cor da superfície separa um círculo do outro.
+    final ring = context.colors.surface;
+
+    Widget ringed(Widget child) => Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(color: ring, shape: BoxShape.circle),
+          child: child,
+        );
+
+    return SizedBox(
+      width: _step * (count - 1) + _size + 4,
+      height: _size + 4,
+      child: Stack(
+        children: [
+          for (final (i, m) in shown.indexed)
+            Positioned(
+              left: _step * i,
+              child: Tooltip(
+                message: m.shortName,
+                child: ringed(MemberAvatar(member: m, size: _size)),
+              ),
+            ),
+          if (extra > 0)
+            Positioned(
+              left: _step * shown.length,
+              child: ringed(
+                Container(
+                  width: _size,
+                  height: _size,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: context.colors.surfaceContainerHigh,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '+$extra',
+                    style: context.text.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: context.colors.onSurface,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Um fato da viagem com o ícone dele: destino e datas.
+class _Fact extends StatelessWidget {
+  const _Fact({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = context.colors.onSurfaceVariant;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: muted),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            text,
+            style: context.text.bodyMedium?.copyWith(color: muted),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -236,9 +318,9 @@ class _MoneyStrip extends ConsumerWidget {
           footnote: next == null
               ? 'nada pendente'
               : [
-                  'próx. ${Money.format(next.remainingCents)}',
+                  'próxima ${Money.format(next.remainingCents)}',
                   if (next.dueDate != null) 'vence ${Fmt.dateShort(next.dueDate!)}',
-                ].join(' · '),
+                ].join(', '),
         ),
       ],
     );
@@ -307,8 +389,8 @@ String _relativeDay(DateTime date) {
   };
 }
 
-/// A próxima atividade que ainda vai acontecer, numa faixa tingida com a
-/// cor da categoria dela.
+/// A próxima atividade que ainda vai acontecer, numa faixa amarelo-claro: o
+/// sol marca o que vem agora.
 class _NextUp extends StatelessWidget {
   const _NextUp({required this.item});
 
@@ -316,19 +398,18 @@ class _NextUp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = item.category.color;
-    final dark = context.isDark;
     final place = item.placeName ?? '';
     final when = [
       _relativeDay(item.date),
       if (item.hasTime) Fmt.time(item.startAt!),
-    ].join(' · ');
+    ].join(', ');
 
     return Ink(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color.withValues(alpha: dark ? 0.16 : 0.10), color.withValues(alpha: 0)],
-        ),
+        color: context.sunSoft,
+        // O fio amarelo à esquerda marca a linha do "agora" também no
+        // escuro, onde o fundo claro do sol quase não aparece.
+        border: const Border(left: BorderSide(color: AppColors.sun, width: 3)),
       ),
       child: InkWell(
         onTap: () => showItineraryDetails(context, item: item),
@@ -336,20 +417,18 @@ class _NextUp extends StatelessWidget {
           padding: const EdgeInsets.all(Gap.lg),
           child: Row(
             children: [
-              CategoryBadge(icon: item.category.icon, color: color, size: 44),
+              CategoryBadge(icon: item.category.icon, color: item.category.color, size: 44),
               Gap.hMd,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'PRÓXIMA · ${when.toUpperCase()}',
-                      style: AppTypography.mono(
-                        size: 11,
-                        weight: FontWeight.w600,
-                        color: dark
-                            ? Color.lerp(color, Colors.white, 0.25)
-                            : Color.lerp(color, Colors.black, 0.25),
+                      'Próxima: $when',
+                      style: context.text.labelMedium?.copyWith(
+                        color: context.colors.onSurface,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                     Gap.vXs,
@@ -411,7 +490,7 @@ class _DayLine extends StatelessWidget {
       '${items.length} ${items.length == 1 ? "atividade" : "atividades"}',
       if (firstTime != null) 'desde ${Fmt.time(firstTime)}',
       if (day.doneCount > 0 && !allDone) '${day.doneCount} feitas',
-    ].join(' · ');
+    ].join(', ');
 
     return InkWell(
       onTap: onTap,
@@ -426,7 +505,7 @@ class _DayLine extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    items.map((i) => i.title).join(' · '),
+                    items.map((i) => i.title).join(', '),
                     style: context.text.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                       color: allDone ? muted : null,
@@ -467,7 +546,7 @@ class _DayLine extends StatelessWidget {
 }
 
 /// A data como folha de calendário: dia da semana, número e mês. Hoje
-/// ganha a cor de destaque.
+/// ganha o amarelo do sol.
 class _DateTile extends StatelessWidget {
   const _DateTile({required this.date, required this.today});
 
@@ -476,28 +555,32 @@ class _DateTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final strong = today ? context.colors.onPrimary : context.colors.onSurface;
-    final soft =
-        today ? context.colors.onPrimary.withValues(alpha: 0.8) : context.colors.onSurfaceVariant;
-    final small = AppTypography.mono(size: 9, weight: FontWeight.w600, color: soft);
+    final strong = today ? AppColors.night : context.colors.onSurface;
+    final soft = today ? AppColors.night.withValues(alpha: 0.75) : context.colors.onSurfaceVariant;
+    final small = context.text.labelSmall!.copyWith(
+      fontSize: 10.5,
+      fontWeight: FontWeight.w600,
+      color: soft,
+      height: 1.2,
+    );
 
     return Container(
-      width: 44,
-      padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+      width: 46,
+      padding: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
-        color: today ? context.colors.primary : context.colors.surfaceContainerLow,
-        borderRadius: Radii.brSm,
-        border: Border.all(color: today ? context.colors.primary : context.colors.outline),
+        color: today ? AppColors.sun : context.colors.surfaceContainerLow,
+        borderRadius: Radii.brMd,
+        border: Border.all(color: today ? AppColors.sun : context.colors.outline),
       ),
       child: Column(
         children: [
-          Text((today ? 'hoje' : Fmt.weekdayShort(date)).toUpperCase(), style: small),
+          Text(today ? 'hoje' : Fmt.weekdayShort(date), style: small),
           Text(
             '${date.day}',
-            style: AppTypography.mono(size: 17, weight: FontWeight.w600, color: strong)
+            style: AppTypography.numeric(size: 18, weight: FontWeight.w700, color: strong)
                 .copyWith(height: 1.15),
           ),
-          Text(Fmt.monthShort(date).toUpperCase(), style: small),
+          Text(Fmt.monthShort(date), style: small),
         ],
       ),
     );
@@ -528,7 +611,7 @@ class _ItineraryFooter extends StatelessWidget {
       '${items.length} ${items.length == 1 ? "atividade" : "atividades"} em '
           '${days.length} ${days.length == 1 ? "dia" : "dias"}',
       if (done > 0) '$done feitas',
-    ].join(' · ');
+    ].join(', ');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.md),
@@ -560,9 +643,12 @@ class _CategoryCount extends StatelessWidget {
     final color = category.color;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: context.isDark ? 0.20 : 0.12),
+        color: Color.alphaBlend(
+          color.withValues(alpha: context.isDark ? 0.22 : 0.12),
+          context.colors.surface,
+        ),
         borderRadius: Radii.brPill,
       ),
       child: Row(
@@ -572,7 +658,7 @@ class _CategoryCount extends StatelessWidget {
           const SizedBox(width: 3),
           Text(
             '$count',
-            style: AppTypography.mono(size: 11, weight: FontWeight.w600, color: color),
+            style: AppTypography.numeric(size: 11.5, weight: FontWeight.w600, color: color),
           ),
         ],
       ),
@@ -616,6 +702,7 @@ class _SettlementPanel extends ConsumerWidget {
                           _ProgressLine(
                             label: 'Pago',
                             value: overview.progress,
+                            color: AnimatedProgressBar.colorFor(overview.progress),
                             detail: '${Money.format(overview.paidCents)} de '
                                 '${Money.format(overview.totalCents)}',
                           ),
@@ -624,6 +711,7 @@ class _SettlementPanel extends ConsumerWidget {
                             _ProgressLine(
                               label: 'Orçamento',
                               value: overview.totalCents / budget,
+                              color: overview.totalCents > budget ? context.debt : null,
                               detail: '${Money.format(overview.totalCents)} de '
                                   '${Money.format(budget)}',
                             ),
@@ -657,11 +745,17 @@ class _SettlementPanel extends ConsumerWidget {
 }
 
 class _ProgressLine extends StatelessWidget {
-  const _ProgressLine({required this.label, required this.value, required this.detail});
+  const _ProgressLine({
+    required this.label,
+    required this.value,
+    required this.detail,
+    this.color,
+  });
 
   final String label;
   final double value;
   final String detail;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -673,14 +767,18 @@ class _ProgressLine extends StatelessWidget {
             Expanded(child: Text(label, style: context.text.titleSmall)),
             Text(
               Fmt.percent(value),
-              style: AppTypography.mono(size: 13, color: context.colors.onSurface),
+              style: AppTypography.numeric(
+                size: 13,
+                weight: FontWeight.w600,
+                color: context.colors.onSurface,
+              ),
             ),
           ],
         ),
         Gap.vSm,
-        AnimatedProgressBar(value: value, height: 8),
+        AnimatedProgressBar(value: value, height: 8, color: color),
         Gap.vSm,
-        Text(detail, style: AppTypography.mono(size: 12, color: context.colors.onSurfaceVariant)),
+        Text(detail, style: AppTypography.numeric(size: 12.5, color: context.colors.onSurfaceVariant)),
       ],
     );
   }
@@ -705,7 +803,7 @@ class _BalanceRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: 10),
       child: Row(
         children: [
-          MemberAvatar(member: member, size: 24),
+          MemberAvatar(member: member, size: 26),
           Gap.hMd,
           Expanded(
             child: Text(
@@ -715,7 +813,7 @@ class _BalanceRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text(text, style: AppTypography.money(size: 13, color: color)),
+          Text(text, style: AppTypography.money(size: 13.5, color: color)),
         ],
       ),
     );

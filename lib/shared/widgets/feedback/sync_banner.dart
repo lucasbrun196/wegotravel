@@ -51,10 +51,13 @@ class _Bar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final offline = status == SyncStatus.offline;
-    final color = offline ? AppColors.warning : context.colors.onSurfaceVariant;
+    final color = offline
+        ? (context.isDark ? AppColors.sun : AppColors.warning)
+        : context.colors.onSurfaceVariant;
 
     return Material(
-      color: color.withValues(alpha: 0.08),
+      // Sem rede, a faixa ganha o amarelo-claro do sol: aviso, não erro.
+      color: offline ? context.sunSoft : context.colors.surfaceContainerHigh,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -73,7 +76,7 @@ class _Bar extends StatelessWidget {
               Flexible(
                 child: Text(
                   offline
-                      ? 'Sem conexão — mostrando o que já estava salvo'
+                      ? 'Sem conexão. Mostrando o que já estava salvo'
                       : 'Enviando as alterações…',
                   style: context.text.labelMedium?.copyWith(color: context.colors.onSurface),
                   maxLines: 2,

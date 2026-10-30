@@ -192,7 +192,7 @@ class _WhenCard extends StatelessWidget {
     final muted = context.colors.onSurfaceVariant;
     final day = Fmt.dateFull(item.date);
     final duration = _duration(item);
-    final timeStyle = AppTypography.mono(
+    final timeStyle = AppTypography.numeric(
       size: 16,
       weight: FontWeight.w600,
       color: context.colors.onSurface,
@@ -210,11 +210,7 @@ class _WhenCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: Radii.brMd,
         border: Border.all(color: color.withValues(alpha: 0.25)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color.withValues(alpha: dark ? 0.18 : 0.10), color.withValues(alpha: 0.02)],
-        ),
+        color: Color.alphaBlend(color.withValues(alpha: dark ? 0.16 : 0.08), context.colors.surface),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

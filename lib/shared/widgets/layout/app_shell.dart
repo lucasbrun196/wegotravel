@@ -1,17 +1,20 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/destinations.dart';
 import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../domain/brand_mark.dart';
 import '../domain/member_avatar.dart';
 import '../effects/theme_toggle.dart';
 
 /// Casca de navegação adaptativa.
 ///
-/// Mesmo conteúdo em todas as larguras, só a navegação muda de lugar:
-/// barra superior com as abas a partir do tablet, barra inferior no
-/// celular.
+/// A navegação mora no azul-noite, como a sinalização de um aeroporto, e a
+/// aba aberta ganha a marca amarela do sol. A partir do tablet é uma barra
+/// no alto com as abas; no celular as abas descem para uma barra embaixo,
+/// e no alto fica só a viagem (toque para trocar) e a conta.
 class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
@@ -38,9 +41,23 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A barra de cima já respeitou o entalhe da tela; a página embaixo dela
+    // não pode somar a mesma folga de novo.
+    final body = MediaQuery.removePadding(context: context, removeTop: true, child: child);
+
     if (context.isMobile) {
       return Scaffold(
-        body: child,
+        body: Column(
+          children: [
+            _MobileTopBar(
+              tripName: tripName ?? 'Viagem',
+              onExit: onExit,
+              userInitials: userInitials,
+              onAccount: onAccount,
+            ),
+            Expanded(child: body),
+          ],
+        ),
         bottomNavigationBar: _BottomBar(
           currentIndex: currentIndex,
           onSelected: onDestinationSelected,
@@ -59,15 +76,70 @@ class AppShell extends StatelessWidget {
             userInitials: userInitials,
             onAccount: onAccount,
           ),
-          Expanded(child: child),
+          Expanded(child: body),
         ],
       ),
     );
   }
 }
 
-/// Barra inferior do celular: ícone fino e rótulo. A aba ativa ganha uma
-/// pílula coral atrás do ícone, que cresce com um leve quique.
+/// O azul da navegação: azul-noite no claro, a superfície no escuro (o
+/// azul-noite sumiria no fundo).
+Color _barColor(BuildContext context) => context.isDark ? AppColors.darkSurface : AppColors.night;
+
+const _onBar = Colors.white;
+const _onBarMuted = Color(0xFFA9BCCF);
+
+// ---------------------------------------------------------------------------
+// Celular
+// ---------------------------------------------------------------------------
+
+class _MobileTopBar extends StatelessWidget {
+  const _MobileTopBar({
+    required this.tripName,
+    this.onExit,
+    this.userInitials,
+    this.onAccount,
+  });
+
+  final String tripName;
+  final VoidCallback? onExit;
+  final String? userInitials;
+  final VoidCallback? onAccount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: context.theme.scaffoldBackgroundColor,
+      child: SafeArea(
+        bottom: false,
+        child: SizedBox(
+          height: 56,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.sm, 0, Gap.md, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _TripSwitcher(name: tripName, onTap: onExit, onDark: false),
+                  ),
+                ),
+                if (userInitials != null) ...[
+                  Gap.hSm,
+                  _AccountAvatar(initials: userInitials!, onTap: onAccount, onDark: false),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Barra inferior do celular. A aba aberta ganha uma pílula amarela atrás
+/// do ícone, que se alarga quando a aba é escolhida.
 class _BottomBar extends StatelessWidget {
   const _BottomBar({required this.currentIndex, required this.onSelected});
 
@@ -76,26 +148,30 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(top: BorderSide(color: context.colors.outline)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            children: [
-              for (final (i, d) in AppDestination.values.indexed)
-                Expanded(
-                  child: _BottomItem(
-                    destination: d,
-                    selected: i == currentIndex,
-                    onTap: () => onSelected(i),
+    return Material(
+      color: _barColor(context),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: context.isDark
+              ? Border(top: BorderSide(color: context.colors.outline))
+              : null,
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 64,
+            child: Row(
+              children: [
+                for (final (i, d) in AppDestination.values.indexed)
+                  Expanded(
+                    child: _BottomItem(
+                      destination: d,
+                      selected: i == currentIndex,
+                      onTap: () => onSelected(i),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -112,39 +188,41 @@ class _BottomItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? context.colors.onSurface : context.colors.onSurfaceVariant;
+    final duration = context.reduceMotion ? Duration.zero : Motion.normal;
 
     return Semantics(
       button: true,
       selected: selected,
       label: destination.label,
+      excludeSemantics: true,
       child: InkResponse(
         onTap: onTap,
-        radius: 32,
+        radius: 36,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.white.withValues(alpha: 0.08),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedContainer(
-              duration: Motion.normal,
-              curve: Motion.enter,
-              padding: EdgeInsets.symmetric(horizontal: selected ? 16 : 10, vertical: 3),
+              duration: duration,
+              curve: Motion.spring,
+              padding: EdgeInsets.symmetric(horizontal: selected ? 18 : 8, vertical: 4),
               decoration: BoxDecoration(
-                color: selected ? context.colors.primaryContainer : Colors.transparent,
+                color: selected ? AppColors.sun : Colors.transparent,
                 borderRadius: Radii.brPill,
               ),
-              child: AnimatedScale(
-                scale: selected ? 1.1 : 1,
-                duration: Motion.normal,
-                curve: Motion.spring,
-                child: Icon(destination.icon, size: 20, color: selected ? context.colors.primary : color),
+              child: Icon(
+                destination.icon,
+                size: 20,
+                color: selected ? AppColors.night : _onBarMuted,
               ),
             ),
-            Gap.vXs,
+            const SizedBox(height: 5),
             AnimatedDefaultTextStyle(
-              duration: Motion.fast,
+              duration: duration,
               style: context.text.labelSmall!.copyWith(
-                fontSize: 11,
-                color: color,
+                fontSize: 11.5,
+                color: selected ? _onBar : _onBarMuted,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
               ),
               child: Text(destination.label, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -156,8 +234,12 @@ class _BottomItem extends StatelessWidget {
   }
 }
 
-/// Barra superior: a viagem à esquerda, as abas centralizadas numa pílula
-/// e, à direita, o tema e a conta.
+// ---------------------------------------------------------------------------
+// Tablet e computador
+// ---------------------------------------------------------------------------
+
+/// Barra superior: a viagem à esquerda, as abas no centro e, à direita, o
+/// tema e a conta.
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.currentIndex,
@@ -177,43 +259,55 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(bottom: BorderSide(color: colors.outline)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: SizedBox(
-          height: 64,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Gap.lg),
-            child: Row(
-              children: [
-                // Os dois lados com o mesmo `flex`: é o que deixa as abas
-                // exatamente no centro, seja qual for o nome da viagem.
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: _TripName(name: tripName ?? 'Viagem', onTap: onExit),
+    return Material(
+      color: _barColor(context),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: context.isDark
+              ? Border(bottom: BorderSide(color: context.colors.outline))
+              : null,
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: SizedBox(
+            height: 64,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Gap.lg),
+              child: Row(
+                children: [
+                  // Os dois lados com o mesmo `flex`: é o que deixa as abas
+                  // exatamente no centro, seja qual for o nome da viagem.
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _TripSwitcher(name: tripName ?? 'Viagem', onTap: onExit, onDark: true),
+                    ),
                   ),
-                ),
-                _TabPill(currentIndex: currentIndex, onSelected: onSelected),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      const ThemeToggle(),
-                      if (userInitials != null) ...[
-                        Gap.hSm,
-                        _AccountAvatar(initials: userInitials!, onTap: onAccount),
+                  _Tabs(currentIndex: currentIndex, onSelected: onSelected),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Theme(
+                          data: context.theme.copyWith(
+                            iconButtonTheme: IconButtonThemeData(
+                              style: IconButton.styleFrom(
+                                foregroundColor: _onBarMuted,
+                                hoverColor: Colors.white.withValues(alpha: 0.08),
+                              ),
+                            ),
+                          ),
+                          child: const ThemeToggle(),
+                        ),
+                        if (userInitials != null) ...[
+                          Gap.hSm,
+                          _AccountAvatar(initials: userInitials!, onTap: onAccount, onDark: true),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -222,152 +316,52 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-/// O selo com a inicial da viagem e o nome dela. Leva de volta à lista de
-/// viagens.
-class _TripName extends StatefulWidget {
-  const _TripName({required this.name, this.onTap});
-
-  final String name;
-  final VoidCallback? onTap;
-
-  @override
-  State<_TripName> createState() => _TripNameState();
-}
-
-class _TripNameState extends State<_TripName> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = widget.name.trim().isEmpty ? '?' : widget.name.trim()[0].toUpperCase();
-
-    return Tooltip(
-      message: 'Trocar de viagem',
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: Motion.fast,
-            padding: const EdgeInsets.fromLTRB(6, 6, Gap.md, 6),
-            decoration: BoxDecoration(
-              color: _hovered ? context.colors.surfaceContainerHigh : Colors.transparent,
-              borderRadius: Radii.brPill,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedRotation(
-                  turns: _hovered ? -0.03 : 0,
-                  duration: Motion.normal,
-                  curve: Motion.spring,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.sunsetGradient,
-                      borderRadius: Radii.brMd,
-                      boxShadow: AppColors.glow(AppColors.coral, opacity: 0.3, blur: 10, y: 3),
-                    ),
-                    child: Text(
-                      initial,
-                      style: context.text.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                ),
-                Gap.hMd,
-                Flexible(
-                  child: Text(
-                    widget.name,
-                    style: context.text.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Gap.hXs,
-                Icon(Icons.unfold_more_rounded, size: 16, color: context.colors.onSurfaceVariant),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// As abas numa pílula cinza, com um indicador branco que desliza até a
-/// ativa. As abas têm largura fixa: é o que permite o indicador saber onde
-/// parar sem medir texto.
-class _TabPill extends StatelessWidget {
-  const _TabPill({required this.currentIndex, required this.onSelected});
+/// As abas em texto, com a marca amarela embaixo da aberta. A marca desliza
+/// de uma aba para a outra. As abas têm largura fixa: é o que permite a
+/// marca saber onde parar sem medir texto.
+class _Tabs extends StatelessWidget {
+  const _Tabs({required this.currentIndex, required this.onSelected});
 
   final int currentIndex;
   final ValueChanged<int> onSelected;
 
-  static const _tabWidth = 100.0;
-  static const _height = 40.0;
-  static const _inset = 4.0;
+  static const _markWidth = 22.0;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-    final dark = context.isDark;
     const destinations = AppDestination.values;
+    final tabWidth = context.isTablet ? 90.0 : 106.0;
 
-    return Container(
-      height: _height,
-      padding: const EdgeInsets.all(_inset),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHigh,
-        borderRadius: Radii.brPill,
-      ),
-      child: SizedBox(
-        width: _tabWidth * destinations.length,
-        height: _height - _inset * 2,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            AnimatedPositioned(
-              duration: Motion.slow,
-              curve: Motion.spring,
-              left: _tabWidth * currentIndex,
-              top: 0,
-              bottom: 0,
-              width: _tabWidth,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: dark ? colors.surface : Colors.white,
-                  borderRadius: Radii.brPill,
-                  boxShadow: [
-                    BoxShadow(
-                      color: (dark ? Colors.black : AppColors.coral).withValues(alpha: dark ? 0.4 : 0.18),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+    return SizedBox(
+      width: tabWidth * destinations.length,
+      height: 64,
+      child: Stack(
+        children: [
+          Row(
+            children: [
+              for (final (i, d) in destinations.indexed)
+                _Tab(
+                  destination: d,
+                  width: tabWidth,
+                  selected: i == currentIndex,
+                  onTap: () => onSelected(i),
                 ),
+            ],
+          ),
+          AnimatedPositioned(
+            duration: context.reduceMotion ? Duration.zero : Motion.slow,
+            curve: Motion.spring,
+            left: tabWidth * currentIndex + (tabWidth - _markWidth) / 2,
+            bottom: 8,
+            width: _markWidth,
+            height: 3,
+            child: const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: AppColors.sun, borderRadius: Radii.brPill),
               ),
             ),
-            Row(
-              children: [
-                for (final (i, d) in destinations.indexed)
-                  _Tab(
-                    destination: d,
-                    width: _tabWidth,
-                    selected: i == currentIndex,
-                    onTap: () => onSelected(i),
-                  ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -395,60 +389,37 @@ class _TabState extends State<_Tab> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final selected = widget.selected;
-    final color = selected
-        ? colors.primary
-        : _hovered
-            ? colors.onSurface
-            : colors.onSurfaceVariant;
+    final color = selected || _hovered ? _onBar : _onBarMuted;
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: SizedBox(
-          width: widget.width,
-          height: double.infinity,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              AnimatedScale(
-                scale: selected ? 1 : 0,
-                duration: Motion.normal,
-                curve: Motion.spring,
-                child: AnimatedSize(
-                  duration: Motion.normal,
-                  curve: Motion.enter,
-                  child: selected
-                      ? Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: Icon(widget.destination.icon, size: 15, color: color),
-                        )
-                      : const SizedBox.shrink(),
-                ),
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: SizedBox(
+        width: widget.width,
+        height: 64,
+        child: InkWell(
+          onTap: widget.onTap,
+          onHover: (v) => setState(() => _hovered = v),
+          hoverColor: Colors.transparent,
+          splashColor: Colors.white.withValues(alpha: 0.06),
+          focusColor: Colors.white.withValues(alpha: 0.10),
+          borderRadius: Radii.brMd,
+          child: Center(
+            child: AnimatedDefaultTextStyle(
+              duration: Motion.fast,
+              style: context.text.labelLarge!.copyWith(
+                fontSize: 14,
+                color: color,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
               ),
-              Flexible(
-                child: AnimatedDefaultTextStyle(
-                  duration: Motion.fast,
-                  style: context.text.labelLarge!.copyWith(
-                    fontSize: 13.5,
-                    color: color,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                  child: Text(
-                    widget.destination.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.fade,
-                    softWrap: false,
-                  ),
-                ),
+              child: Text(
+                widget.destination.label,
+                maxLines: 1,
+                overflow: TextOverflow.fade,
+                softWrap: false,
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -456,11 +427,98 @@ class _TabState extends State<_Tab> {
   }
 }
 
-/// O avatar da conta, com um anel em degradê que gira de leve no hover.
+// ---------------------------------------------------------------------------
+// Peças comuns
+// ---------------------------------------------------------------------------
+
+/// O selo da marca e o nome da viagem. Leva de volta à lista de viagens.
+class _TripSwitcher extends StatefulWidget {
+  const _TripSwitcher({required this.name, required this.onDark, this.onTap});
+
+  final String name;
+  final VoidCallback? onTap;
+
+  /// Sobre a barra azul-noite (texto claro) ou sobre o fundo da página.
+  final bool onDark;
+
+  @override
+  State<_TripSwitcher> createState() => _TripSwitcherState();
+}
+
+class _TripSwitcherState extends State<_TripSwitcher> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final onDark = widget.onDark;
+    final text = onDark ? _onBar : context.colors.onSurface;
+    final soft = onDark ? _onBarMuted : context.colors.onSurfaceVariant;
+    final hoverFill = onDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : context.colors.surfaceContainerHigh;
+
+    return Tooltip(
+      message: 'Trocar de viagem',
+      child: Semantics(
+        button: true,
+        label: 'Viagem ${widget.name}. Trocar de viagem',
+        excludeSemantics: true,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (e) {
+            if (e.kind == PointerDeviceKind.mouse) setState(() => _hovered = true);
+          },
+          onExit: (_) => setState(() => _hovered = false),
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: Motion.fast,
+              padding: const EdgeInsets.fromLTRB(6, 6, Gap.md, 6),
+              decoration: BoxDecoration(
+                color: _hovered ? hoverFill : Colors.transparent,
+                borderRadius: Radii.brPill,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SunMark(
+                    size: 30,
+                    // Sobre a barra azul-noite, o selo clareia um tom para
+                    // não se fundir com ela.
+                    tile: onDark ? AppColors.nightRaised : null,
+                  ),
+                  Gap.hMd,
+                  Flexible(
+                    child: Text(
+                      widget.name,
+                      style: context.text.titleMedium?.copyWith(color: text),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Gap.hXs,
+                  AnimatedRotation(
+                    turns: _hovered ? 0.5 : 0,
+                    duration: Motion.normal,
+                    curve: Motion.enter,
+                    child: Icon(Icons.unfold_more_rounded, size: 16, color: soft),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// O avatar da conta. No hover ganha um anel amarelo.
 class _AccountAvatar extends StatefulWidget {
-  const _AccountAvatar({required this.initials, this.onTap});
+  const _AccountAvatar({required this.initials, required this.onDark, this.onTap});
 
   final String initials;
+  final bool onDark;
   final VoidCallback? onTap;
 
   @override
@@ -472,35 +530,42 @@ class _AccountAvatarState extends State<_AccountAvatar> {
 
   @override
   Widget build(BuildContext context) {
+    final ring = _hovered
+        ? AppColors.sun
+        : widget.onDark
+            ? Colors.white.withValues(alpha: 0.18)
+            : context.colors.outline;
+
     return Tooltip(
-      message: 'Minha conta',
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedScale(
-            scale: _hovered ? 1.06 : 1,
-            duration: Motion.normal,
-            curve: Motion.spring,
-            child: Container(
+      message: 'Sua conta',
+      child: Semantics(
+        button: true,
+        label: 'Sua conta',
+        excludeSemantics: true,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (e) {
+            if (e.kind == PointerDeviceKind.mouse) setState(() => _hovered = true);
+          },
+          onExit: (_) => setState(() => _hovered = false),
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: Motion.normal,
+              curve: Motion.enter,
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: SweepGradient(
-                  colors: const [AppColors.coral, AppColors.sunset, AppColors.grape, AppColors.coral],
-                  transform: GradientRotation(_hovered ? 1.2 : 0),
-                ),
+                border: Border.all(color: ring, width: 2),
               ),
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: context.colors.surface,
-                ),
-                child: InitialsAvatar(initials: widget.initials, size: 30),
-              ),
+              child: widget.onDark
+                  ? InitialsAvatar(
+                      initials: widget.initials,
+                      size: 30,
+                      background: AppColors.darkAction,
+                      foreground: AppColors.night,
+                    )
+                  : InitialsAvatar(initials: widget.initials, size: 30),
             ),
           ),
         ),
