@@ -33,6 +33,7 @@ const PRECACHE = [
   'flutter.js',
   'main.dart.js',
   'manifest.json',
+  'favicon.svg',
   'favicon.png',
   'icons/Icon-192.png',
 ];

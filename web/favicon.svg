@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- O selo do app (SunMark), parado: o mesmo desenho da splash em
+       web/index.html, com o sol já no alto. -->
+  <defs><clipPath id="sky"><rect width="100" height="60"/></clipPath></defs>
+  <rect width="100" height="100" rx="26" fill="#14283B"/>
+  <g clip-path="url(#sky)"><circle cx="50" cy="60" r="23" fill="#F2BF45"/></g>
+  <line x1="18" y1="60" x2="82" y2="60" stroke="#8DBEEC" stroke-width="5" stroke-linecap="round"/>
+  <g stroke="#F2BF45" stroke-opacity=".75" stroke-width="5" stroke-linecap="round">
+    <line x1="33" y1="72" x2="67" y2="72"/>
+    <line x1="42" y1="82" x2="58" y2="82"/>
+  </g>
+</svg>
