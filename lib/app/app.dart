@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -30,7 +29,6 @@ class VacationApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      scrollBehavior: const _AppScrollBehavior(),
 
       // Acima de qualquer rota: o aviso de offline é da sessão, não de
       // uma tela. Fica fora do `routerConfig` para não ser remontado a
@@ -40,18 +38,4 @@ class VacationApp extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Na web, arrastar com o mouse precisa rolar a lista — o padrão do
-/// Flutter só permite roda do mouse e trackpad.
-class _AppScrollBehavior extends MaterialScrollBehavior {
-  const _AppScrollBehavior();
-
-  @override
-  Set<PointerDeviceKind> get dragDevices => {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.trackpad,
-        PointerDeviceKind.stylus,
-      };
 }
