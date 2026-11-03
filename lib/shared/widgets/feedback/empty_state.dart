@@ -14,6 +14,10 @@ class EmptyState extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.actionIcon = Icons.add_rounded,
+    this.secondaryLabel,
+    this.onSecondary,
+    this.secondaryIcon,
     this.accent,
   });
 
@@ -22,6 +26,12 @@ class EmptyState extends StatelessWidget {
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final IconData actionIcon;
+
+  /// Um segundo caminho, ao lado do principal e com menos peso.
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
+  final IconData? secondaryIcon;
 
   /// Cor do círculo; sem ela, o azul do céu.
   final Color? accent;
@@ -58,10 +68,25 @@ class EmptyState extends StatelessWidget {
               Text(message, style: context.text.bodySmall, textAlign: TextAlign.center),
               if (actionLabel != null && onAction != null) ...[
                 Gap.vLg,
-                FilledButton.icon(
-                  onPressed: onAction,
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: Text(actionLabel!),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: Gap.sm,
+                  runSpacing: Gap.sm,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: onAction,
+                      icon: Icon(actionIcon, size: 18),
+                      label: Text(actionLabel!),
+                    ),
+                    if (secondaryLabel != null && onSecondary != null)
+                      secondaryIcon == null
+                          ? OutlinedButton(onPressed: onSecondary, child: Text(secondaryLabel!))
+                          : OutlinedButton.icon(
+                              onPressed: onSecondary,
+                              icon: Icon(secondaryIcon, size: 18),
+                              label: Text(secondaryLabel!),
+                            ),
+                  ],
                 ),
               ],
             ],
