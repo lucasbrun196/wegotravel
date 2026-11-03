@@ -9,6 +9,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../shared/widgets/feedback/app_toast.dart';
 import '../../../shared/widgets/feedback/error_banner.dart';
+import '../../../shared/widgets/feedback/loading_shimmer.dart';
 import '../widgets/auth_layout.dart';
 
 /// Onde cai o link do e-mail de "esqueci minha senha".
@@ -95,9 +96,21 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         future: _email,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: Gap.xxl),
-              child: Center(child: CircularProgressIndicator()),
+            // Conferindo o link: o formato do formulário que vem a seguir.
+            return const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ShimmerBox(width: 200, height: 26),
+                Gap.vMd,
+                ShimmerBox(width: 280, height: 14),
+                Gap.vXl,
+                ShimmerBox(height: 48, borderRadius: Radii.brMd),
+                Gap.vMd,
+                ShimmerBox(height: 48, borderRadius: Radii.brMd),
+                Gap.vXl,
+                ShimmerBox(height: 44, borderRadius: Radii.brMd),
+              ],
             );
           }
           if (snapshot.hasError) {
@@ -172,16 +185,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           ],
           Gap.vXl,
           FilledButton(
+            style: FilledButton.styleFrom(disabledBackgroundColor: _saving ? context.action : null),
             onPressed: _saving ? null : () => _save(email),
             child: _saving
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: context.colors.onPrimary,
-                    ),
-                  )
+                ? ButtonSkeleton(color: context.onAction)
                 : const Text('Salvar e entrar'),
           ),
         ],
