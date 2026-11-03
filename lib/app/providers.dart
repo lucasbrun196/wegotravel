@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/app_user.dart';
 import '../data/models/bill.dart';
+import '../data/models/board_post.dart';
 import '../data/models/bill_entry.dart';
 import '../data/models/bill_share.dart';
 import '../data/models/itinerary_enums.dart';
@@ -14,6 +15,7 @@ import '../data/models/trip.dart';
 import '../data/models/itinerary_item.dart';
 import '../data/models/weather.dart';
 import '../data/repositories/bill_repository.dart';
+import '../data/repositories/board_repository.dart';
 import '../data/repositories/itinerary_repository.dart';
 import '../data/repositories/trip_repository.dart';
 import '../data/repositories/user_repository.dart';
@@ -91,8 +93,9 @@ class ThemeModeController extends Notifier<ThemeMode> {
 final userRepositoryProvider =
     Provider((ref) => UserRepository(ref.watch(refsProvider)));
 
-final tripRepositoryProvider =
-    Provider((ref) => TripRepository(ref.watch(refsProvider)));
+final tripRepositoryProvider = Provider(
+  (ref) => TripRepository(ref.watch(refsProvider), ref.watch(storageServiceProvider)),
+);
 
 final billRepositoryProvider = Provider(
   (ref) => BillRepository(ref.watch(refsProvider), ref.watch(storageServiceProvider)),
@@ -100,6 +103,10 @@ final billRepositoryProvider = Provider(
 
 final itineraryRepositoryProvider =
     Provider((ref) => ItineraryRepository(ref.watch(refsProvider)));
+
+final boardRepositoryProvider = Provider(
+  (ref) => BoardRepository(ref.watch(refsProvider), ref.watch(storageServiceProvider)),
+);
 
 // ---------------------------------------------------------------
 // Sessão
@@ -306,3 +313,28 @@ final dailyForecastProvider =
     FutureProvider.family<Map<String, DailyWeather>, WeatherQuery>(
   (ref, query) => ref.watch(weatherServiceProvider).dailyForecast(query),
 );
+
+// ---------------------------------------------------------------
+// Mural
+// ---------------------------------------------------------------
+
+/// As fotos e os vídeos da viagem, do mais recente para o mais antigo.
+final boardPostsProvider = StreamProvider<List<BoardPost>>(
+  (ref) => ref.watch(boardRepositoryProvider).watchPosts(ref.watch(currentTripIdProvider)),
+  dependencies: [currentTripIdProvider],
+);
+
+/// Link de download de um arquivo do Storage, pedido na hora.
+///
+/// É aqui que a regra "só quem participa da viagem vê o mural" vale para
+/// os arquivos: o Storage só devolve o link depois de conferir a pessoa no
+/// documento da viagem. O link não é guardado no post (ver `BoardPost`) e
+/// vive só nesta sessão — um arquivo é pedido uma vez, e trocar de conta
+/// descarta tudo.
+///
+/// Não lê a viagem (o caminho já a contém), então não declara
+/// `dependencies`: o cache é um só para o app inteiro.
+final mediaUrlProvider = FutureProvider.family<String, String>((ref, path) {
+  ref.watch(currentUidProvider);
+  return ref.watch(storageServiceProvider).downloadUrl(path);
+});

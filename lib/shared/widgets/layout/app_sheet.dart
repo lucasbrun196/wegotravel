@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../feedback/loading_shimmer.dart';
 
 /// Formulário adaptativo: sobe como bottom sheet no celular e aparece
 /// como diálogo centralizado no desktop. Mesmo conteúdo nos dois.
@@ -165,18 +166,19 @@ class SheetActions extends StatelessWidget {
             ),
           );
 
+    final fill = destructive ? context.colors.error : context.action;
+    final onFill = destructive ? context.colors.onError : context.onAction;
     final primary = FilledButton(
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: Gap.md),
         backgroundColor: destructive ? context.colors.error : null,
+        // Salvando, o botão segue na cor dele: quem some é o rótulo, que
+        // vira esqueleto.
+        disabledBackgroundColor: isLoading ? fill : null,
       ),
       onPressed: isLoading ? null : onPrimary,
       child: isLoading
-          ? SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.onPrimary),
-            )
+          ? ButtonSkeleton(color: onFill)
           : Text(
               primaryLabel,
               maxLines: 1,

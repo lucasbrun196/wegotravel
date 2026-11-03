@@ -8,6 +8,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/attachment.dart';
 import '../feedback/app_toast.dart';
+import '../feedback/loading_shimmer.dart';
 
 /// Miniatura de um comprovante. Imagem mostra preview; PDF mostra ícone.
 class AttachmentThumb extends StatelessWidget {
@@ -43,13 +44,7 @@ class AttachmentThumb extends StatelessWidget {
                 ? CachedNetworkImage(
                     imageUrl: attachment.url,
                     fit: BoxFit.cover,
-                    placeholder: (_, _) => const Center(
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
+                    placeholder: (_, _) => ShimmerBox(height: size, width: size),
                     errorWidget: (_, _, _) =>
                         const Icon(Icons.broken_image_outlined, size: 20),
                   )
@@ -149,20 +144,22 @@ class AttachmentStrip extends StatelessWidget {
             attachment: attachment,
             onDelete: onDelete == null ? null : () => onDelete!(attachment),
           ),
+        // Enviando: o quadro do comprovante em esqueleto, com o quanto já
+        // subiu numa barra embaixo.
         if (uploading)
-          Container(
+          SizedBox(
             width: 72,
             height: 72,
-            decoration: BoxDecoration(
-              color: context.colors.surfaceContainerHigh,
-              borderRadius: Radii.brMd,
-            ),
-            child: Center(
-              child: SizedBox(
-                width: 26,
-                height: 26,
-                child: CircularProgressIndicator(strokeWidth: 2.6, value: progress),
-              ),
+            child: Stack(
+              children: [
+                const ShimmerBox(width: 72, height: 72, borderRadius: Radii.brMd),
+                Positioned(
+                  left: Gap.sm,
+                  right: Gap.sm,
+                  bottom: Gap.sm,
+                  child: ShimmerProgress(value: progress, height: 3),
+                ),
+              ],
             ),
           ),
         if (onAdd != null && !uploading)

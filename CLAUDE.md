@@ -155,6 +155,46 @@ e o nome do lugar vai para o Firestore. Do Mapbox usamos só os tiles. O
 Nominatim aceita no máximo uma requisição por segundo: o debounce de 600 ms em
 `map_picker_sheet.dart` não é enfeite.
 
+**O post do mural guarda caminho, nunca link de download.** O link do
+Firebase leva um token que abre o arquivo para quem o tiver, sem regra
+nenhuma. Quem mostra a foto pede o link na hora (`mediaUrlProvider`), e a
+regra do Storage confere a participação lendo `trips/{tripId}` no Firestore
+(`firestore.get`). Esse acesso entre serviços é autorizado no primeiro deploy
+das regras; sem ele nenhum arquivo de viagem abre. Efeito aceito: sem rede, o
+mural não mostra foto.
+
+**Foto do Storage na Web depende do CORS do bucket.** O `Image.network` do
+Flutter Web baixa por XHR; sem `firebase/storage.cors.json` aplicado no bucket,
+o envio e o `getDownloadURL` funcionam, mas a imagem cai no `errorBuilder` com
+erro de CORS no console. Não se corrige no código: é configuração do bucket
+(ver o README).
+
+**Excluir a viagem apaga os arquivos do mural antes dos documentos.** As
+regras do Storage leem a lista de participantes no documento da viagem;
+depois que ele some, ninguém mais consegue apagar esses arquivos
+(`TripRepository.deleteTrip`).
+
+**Na Web o upload do mural sai do `File` do navegador, por `putBlob`.** Ler um
+vídeo de 100 MB para um `Uint8List` trava a aba. O que depende de plataforma
+no mural mora em `lib/data/services/media/`, em pares `_io`/`_web` exportados
+por condição, como o `clear_launch_query`: seletor, miniatura e capa (feitas
+pelo próprio navegador, com canvas), exportação e arrastar arquivo.
+
+**A tela cheia e a câmera do mural abrem no Navigator raiz**, para cobrir a
+barra de navegação. A tela cheia lê providers da viagem, então vai embrulhada
+no `UncontrolledProviderScope` de quem abriu, como faz o `showAppSheet`. O
+`Hero` atravessa os dois Navigators porque o quadro de origem está na rota do
+topo do Navigator da casca.
+
+**Na Web o vídeo é um elemento da página.** Um `GestureDetector` atrás do
+`VideoPlayer` não recebe o toque; o que precisa de toque (mostrar os
+controles, o botão de tocar) fica por cima dele na pilha.
+
+**Compartilhar na Web exige um toque recente.** O `navigator.share` só aceita
+ser chamado logo depois de um gesto, e baixar os arquivos antes pode estourar
+esse prazo (o Safari é o mais rígido). `ShareOutcome.needsTap` abre um diálogo
+cujo botão "Compartilhar" é o toque novo.
+
 **`third_party/firebase_core_web` é uma cópia com patch de duas linhas**, ligada
 por `dependency_overrides`, porque a versão publicada não compila no Dart 3.11.
 Está excluída do analisador. Remover quando o FlutterFire publicar uma versão

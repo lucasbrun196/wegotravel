@@ -4,14 +4,17 @@ import '../models/app_user.dart';
 import '../models/member.dart';
 import '../models/trip.dart';
 import '../services/firestore_refs.dart';
+import '../services/storage_service.dart';
+import 'board_repository.dart';
 
 /// Motivo pelo qual não foi possível adicionar alguém à viagem.
 enum AddMemberResult { added, notRegistered, alreadyMember }
 
 class TripRepository {
-  TripRepository(this._refs);
+  TripRepository(this._refs, this._storage);
 
   final FirestoreRefs _refs;
+  final StorageService _storage;
 
   // ---------------------------------------------------------------
   // Viagens
@@ -94,7 +97,13 @@ class TripRepository {
       _refs.trip(trip.id).set(trip.toMap(), SetOptions(merge: true));
 
   /// Apaga a viagem e tudo que vive sob ela. Só o admin consegue.
+  ///
+  /// As fotos e os vídeos do mural saem primeiro: as regras do Storage
+  /// conferem a participação no documento da viagem, e depois que ele some
+  /// ninguém mais consegue apagar esses arquivos.
   Future<void> deleteTrip(String tripId) async {
+    await BoardRepository(_refs, _storage).deleteAllFiles(tripId);
+
     for (final collection in ['members', 'itinerary', 'posts']) {
       final snap = await _refs.trip(tripId).collection(collection).get();
       final batch = _refs.db.batch();

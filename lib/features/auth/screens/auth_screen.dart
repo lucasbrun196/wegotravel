@@ -8,6 +8,7 @@ import '../../../core/extensions/context_ext.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../data/services/auth_service.dart';
 import '../../../shared/widgets/feedback/error_banner.dart';
+import '../../../shared/widgets/feedback/loading_shimmer.dart';
 import '../widgets/auth_layout.dart';
 
 enum AuthMode { signIn, signUp }
@@ -250,16 +251,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
             Gap.vLg,
             FilledButton(
+              style: FilledButton.styleFrom(disabledBackgroundColor: _loading ? context.action : null),
               onPressed: _loading ? null : _submit,
               child: _loading
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: context.colors.onPrimary,
-                      ),
-                    )
+                  ? ButtonSkeleton(color: context.onAction)
                   : Text(_isSignUp ? 'Criar conta' : 'Entrar'),
             ),
             Gap.vLg,
@@ -383,16 +378,10 @@ class _ForgotPasswordFormState extends ConsumerState<_ForgotPasswordForm> {
           ],
           Gap.vXl,
           FilledButton(
+            style: FilledButton.styleFrom(disabledBackgroundColor: _sending ? context.action : null),
             onPressed: _sending ? null : _send,
             child: _sending
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: context.colors.onPrimary,
-                    ),
-                  )
+                ? ButtonSkeleton(color: context.onAction)
                 : const Text('Enviar link'),
           ),
           Gap.vMd,

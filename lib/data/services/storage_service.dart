@@ -77,6 +77,35 @@ class StorageService {
     );
   }
 
+  Reference ref(String path) => _storage.ref(path);
+
+  /// Link de download pedido agora, e não guardado.
+  ///
+  /// O Storage confere as regras antes de responder: no mural, se quem
+  /// pede participa da viagem. Ver `mediaUrlProvider`.
+  Future<String> downloadUrl(String path) => _storage.ref(path).getDownloadURL();
+
+  /// Metadados de um arquivo do mural.
+  ///
+  /// O `uploadedBy` não é enfeite: as regras do Storage exigem que ele seja
+  /// quem envia, e é por ele que sabem quem pode apagar o arquivo depois.
+  static SettableMetadata boardMetadata({
+    required String contentType,
+    required String uploadedBy,
+    String? originalName,
+  }) =>
+      SettableMetadata(
+        contentType: contentType,
+        // Cada post tem a sua pasta e o arquivo nunca muda: o navegador pode
+        // guardar à vontade. `private` impede que um cache compartilhado
+        // (proxy, CDN) guarde a foto de alguém.
+        cacheControl: 'private, max-age=31536000, immutable',
+        customMetadata: {
+          'uploadedBy': uploadedBy,
+          'originalName': ?originalName,
+        },
+      );
+
   /// Remove o arquivo do Storage. Um arquivo já ausente não é erro —
   /// o objetivo é que ele não exista mais.
   Future<void> delete(String storagePath) async {
@@ -110,4 +139,7 @@ abstract final class StoragePaths {
   static String member(String tripId, String memberId) => 'trips/$tripId/members/$memberId';
   static String receipts(String tripId, String billId) => 'trips/$tripId/receipts/$billId';
   static String board(String tripId, String postId) => 'trips/$tripId/board/$postId';
+
+  /// As versões reduzidas de um post: miniatura e tela cheia.
+  static String boardThumbs(String tripId, String postId) => '${board(tripId, postId)}/thumbs';
 }
