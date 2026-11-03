@@ -39,7 +39,10 @@ class FirestoreRefs {
   JsonCollection shares(String tripId, String billId) =>
       bill(tripId, billId).collection('shares');
 
+  /// O mural: um documento por foto ou vídeo. Ver `BoardPost`.
   JsonCollection posts(String tripId) => trip(tripId).collection('posts');
+
+  JsonDoc post(String tripId, String postId) => posts(tripId).doc(postId);
 
   /// Todas as cotas de uma viagem, em uma consulta só — é o que
   /// alimenta os totais e "minhas pendências" sem varrer conta por conta.
