@@ -4,9 +4,10 @@ rules_version = '2';
 // Acesso é sempre por participação na viagem.
 //
 // Regra geral do produto: todo participante gerencia a viagem por
-// completo — roteiro, contas, cotas e mural, sem restrição. As únicas
-// coisas reservadas ao administrador são a lista de participantes e a
-// exclusão da viagem.
+// completo — roteiro, contas e cotas, sem restrição. As únicas coisas
+// reservadas ao administrador são a lista de participantes e a exclusão
+// da viagem. O mural é a exceção: a foto é de quem postou, e só ela (ou
+// o admin) a exclui.
 // =====================================================================
 
 service cloud.firestore {
@@ -134,9 +135,52 @@ service cloud.firestore {
         }
       }
 
+      // Mural: um documento por foto ou vídeo. O arquivo mora no Storage,
+      // em `trips/{tripId}/board/{postId}/`, e os caminhos gravados aqui
+      // precisam apontar para essa pasta — senão daria para "postar" o
+      // arquivo de outra viagem.
+      //
+      // O documento guarda caminhos, nunca link de download: o link abre o
+      // arquivo para quem o tiver, sem passar por regra nenhuma. Quem quer
+      // ver pede o link na hora, e o Storage confere a participação.
       match /posts/{postId} {
+        function inBoardFolder(path) {
+          return path is string
+                 && path.matches('trips/' + tripId + '/board/' + postId + '/[^/]+');
+        }
+
+        function inThumbsFolder(path) {
+          return path == null
+                 || (path is string
+                     && path.matches('trips/' + tripId + '/board/' + postId + '/thumbs/[^/]+'));
+        }
+
+        function validCaption(data) {
+          return data.get('caption', null) == null
+                 || (data.caption is string && data.caption.size() <= 500);
+        }
+
         allow read: if isMember(tripId);
-        allow write: if isMember(tripId);
+
+        allow create: if isMember(tripId)
+                      && request.resource.data.authorId == uid()
+                      && request.resource.data.kind in ['photo', 'video']
+                      && inBoardFolder(request.resource.data.storagePath)
+                      && inThumbsFolder(request.resource.data.get('thumbPath', null))
+                      && inThumbsFolder(request.resource.data.get('displayPath', null))
+                      && validCaption(request.resource.data)
+                      && request.resource.data.createdAt == request.time;
+
+        // Depois de postada, só a legenda muda, e só por quem postou.
+        allow update: if isMember(tripId)
+                      && resource.data.authorId == uid()
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['caption', 'updatedAt'])
+                      && validCaption(request.resource.data);
+
+        // Quem postou exclui; o admin também, para limpar o mural.
+        allow delete: if isMember(tripId)
+                      && (resource.data.authorId == uid() || isTripAdmin(tripId));
       }
     }
 

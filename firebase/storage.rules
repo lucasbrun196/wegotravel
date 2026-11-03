@@ -3,14 +3,18 @@ rules_version = '2';
 // =====================================================================
 // Regras do Storage.
 //
-// Limitação conhecida: regras de Storage não conseguem consultar o
-// Firestore, então não dá para conferir aqui se a pessoa participa da
-// viagem. A proteção é: precisa estar autenticada, o caminho precisa
-// seguir a estrutura esperada, e tipo e tamanho são validados — o que
-// já barra abuso automatizado e enchente de arquivo grande.
+// Todo arquivo de viagem mora sob `trips/{tripId}` e só é lido, enviado
+// ou apagado por quem participa dela. A regra consulta o documento da
+// viagem no Firestore (regra entre serviços, `firestore.get`): é a mesma
+// lista `memberIds` que as regras do banco conferem. Quem sai da viagem
+// perde o acesso aos arquivos no mesmo instante.
 //
-// Os nomes de arquivo são UUID e as URLs de download levam token, de
-// modo que ninguém adivinha o caminho de um comprovante alheio.
+// Essa consulta precisa de uma permissão do projeto: no primeiro deploy
+// destas regras, o Firebase CLI pergunta se pode dar ao Storage acesso de
+// leitura ao Firestore. Sem ela, toda leitura cai em "permission denied".
+//
+// Os nomes de arquivo são aleatórios e tipo e tamanho são validados, o
+// que barra abuso automatizado e enchente de arquivo grande.
 // =====================================================================
 
 service firebase.storage {
@@ -18,6 +22,18 @@ service firebase.storage {
 
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function tripDoc(tripId) {
+      return firestore.get(/databases/(default)/documents/trips/$(tripId)).data;
+    }
+
+    function isMember(tripId) {
+      return isSignedIn() && request.auth.uid in tripDoc(tripId).memberIds;
+    }
+
+    function isTripAdmin(tripId) {
+      return isSignedIn() && request.auth.uid == tripDoc(tripId).adminId;
     }
 
     function isImage() {
@@ -36,40 +52,55 @@ service firebase.storage {
       return request.resource.size < mb * 1024 * 1024;
     }
 
+    // Quem envia um arquivo do mural se identifica no metadado; é por ele
+    // que a regra sabe, depois, quem pode apagá-lo.
+    function sentByMe() {
+      return request.resource.metadata.uploadedBy == request.auth.uid;
+    }
+
+    function ownedByMe() {
+      return resource.metadata.uploadedBy == request.auth.uid;
+    }
+
     match /trips/{tripId} {
 
       // Capa da viagem.
       match /cover/{fileName} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn() && isImage() && underSize(8);
-        allow delete: if isSignedIn();
+        allow read: if isMember(tripId);
+        allow create, update: if isMember(tripId) && isImage() && underSize(8);
+        allow delete: if isMember(tripId);
       }
 
       // Avatares.
       match /members/{memberId}/{fileName} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn() && isImage() && underSize(4);
-        allow delete: if isSignedIn();
+        allow read: if isMember(tripId);
+        allow create, update: if isMember(tripId) && isImage() && underSize(4);
+        allow delete: if isMember(tripId);
       }
 
       // Comprovantes de gasto e de PIX: foto ou PDF.
       match /receipts/{billId}/{fileName} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn() && (isImage() || isDocument()) && underSize(20);
-        allow delete: if isSignedIn();
+        allow read: if isMember(tripId);
+        allow create, update: if isMember(tripId) && (isImage() || isDocument()) && underSize(20);
+        allow delete: if isMember(tripId);
       }
 
-      // Mural: fotos e vídeos.
+      // Mural: o original da foto ou do vídeo. `get`, e não `read`:
+      // ninguém lista a pasta, cada arquivo é pedido pelo caminho que está
+      // no post. O arquivo nunca é reescrito — post novo, pasta nova.
       match /board/{postId}/{fileName} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn() && (isImage() || isVideo()) && underSize(150);
-        allow delete: if isSignedIn();
+        allow get: if isMember(tripId);
+        allow create: if isMember(tripId) && sentByMe()
+                      && (isImage() || isVideo()) && underSize(150);
+        allow delete: if isMember(tripId) && (ownedByMe() || isTripAdmin(tripId));
       }
 
+      // Mural: a miniatura e a versão de tela cheia, em JPEG, geradas no
+      // aparelho de quem postou.
       match /board/{postId}/thumbs/{fileName} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn() && isImage() && underSize(2);
-        allow delete: if isSignedIn();
+        allow get: if isMember(tripId);
+        allow create: if isMember(tripId) && sentByMe() && isImage() && underSize(4);
+        allow delete: if isMember(tripId) && (ownedByMe() || isTripAdmin(tripId));
       }
     }
 
