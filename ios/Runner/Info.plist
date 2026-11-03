@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Para tirar fotos na hora e postar no mural da viagem.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Para salvar na galeria as fotos e os vídeos que você baixar do mural.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Para escolher fotos e vídeos da galeria e postar no mural da viagem.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
