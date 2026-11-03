@@ -43,7 +43,10 @@ senha" e confirma a exclusão pedindo a conta Google de novo.
 | Ação | Quem pode |
 |---|---|
 | Criar viagem | Qualquer pessoa com conta (vira admin dela) |
-| Gerenciar roteiro, contas, cotas, mural | Todo participante, sem restrição |
+| Gerenciar roteiro, contas e cotas | Todo participante, sem restrição |
+| Ver o mural e postar foto ou vídeo | Todo participante |
+| Mudar a legenda de uma foto | Quem postou |
+| Excluir foto ou vídeo do mural | Quem postou e o admin |
 | Adicionar / remover participantes | Só o admin |
 | Excluir a viagem | Só o admin |
 | Sair da viagem | Qualquer participante |
@@ -81,13 +84,37 @@ Os arquivos de configuração ficam em `firebase/`:
 |---|---|
 | `firestore.rules` | Regras de acesso ao banco, baseadas em participação na viagem |
 | `firestore.indexes.json` | Índices compostos necessários para as queries |
-| `storage.rules` | Regras de arquivos, com limites de tipo e tamanho |
+| `storage.rules` | Regras de arquivos: participação na viagem, tipo e tamanho |
 
 Publicar as regras:
 
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
+
+As regras do Storage consultam o documento da viagem no Firestore para saber
+quem participa dela (regra entre serviços). No primeiro deploy delas o CLI
+pergunta se pode dar ao Storage acesso de leitura ao Firestore: é preciso
+aceitar. Sem essa permissão, nenhum arquivo de viagem abre.
+
+### CORS do Storage
+
+Na Web, o Flutter baixa as imagens por XHR, e o navegador só entrega a resposta
+se o bucket disser que aceita outro domínio. Sem essa configuração o envio
+funciona, o link sai, e a foto aparece como quadro quebrado, com
+`No 'Access-Control-Allow-Origin' header` no console. O mesmo vale para
+exportar (compartilhar e baixar). A configuração está em
+`firebase/storage.cors.json` e não passa pelo `firebase deploy`: aplique uma
+vez pelo Cloud Shell do console do Google Cloud (ou com o Google Cloud CLI
+instalado):
+
+```bash
+gcloud storage buckets update gs://SEU-BUCKET --cors-file=firebase/storage.cors.json
+```
+
+A origem fica aberta (`*`) só para leitura, e isso não expõe nada: o CORS não é
+a fechadura. O que protege o arquivo é o token do link, que só sai para quem
+passa pelas regras do Storage.
 
 ### Gerar as credenciais
 
@@ -103,6 +130,45 @@ modelo em `lib/firebase_options.dart.example` para quem preferir preencher
 
 Essas chaves identificam o app, não autorizam nada sozinhas: a proteção
 real são as Security Rules em `firebase/`.
+
+## Mural
+
+As fotos e os vídeos da viagem, de todo mundo, separados pelo dia em que foram
+feitos: "Dia 3", com os lugares que o roteiro tinha para aquele dia. A data
+sai do EXIF da foto (`lib/core/utils/exif_date.dart`); sem EXIF, da data do
+arquivo. Assim quem posta tudo na volta não joga a viagem inteira num dia só.
+
+| Para | Como |
+|---|---|
+| Postar | **Importar** abre o seletor do aparelho: marque várias de uma vez ou uma só. Antes de postar, uma revisão deixa tirar arquivo, pôr mais e escrever legenda em cada |
+| Tirar na hora | **Câmera** abre a câmera dentro do app (a do celular ou a webcam). Dá para tirar várias seguidas e postar todas juntas |
+| Arrastar | No computador, arraste os arquivos para a janela do Mural |
+| Ver | Toque na foto: tela cheia, deslizar para os lados, pinça e duplo toque para zoom, arrastar para baixo para fechar. No teclado, setas e Esc |
+| Rever | O botão de apresentação passa as fotos sozinho, cinco segundos cada; o vídeo toca até o fim |
+| Exportar | **Compartilhar** abre a folha do sistema: WhatsApp, Instagram, e-mail e, no iPhone, "Salvar imagem". **Baixar** guarda o arquivo original; no app de celular, vai direto para a galeria. **Selecionar** faz tudo isso com várias de uma vez |
+
+Cada post sobe três arquivos: o original (até 150 MB), que é o que se exporta,
+e duas versões em JPEG feitas no aparelho de quem postou: a miniatura da grade
+e a de tela cheia. Na Web quem reduz é o próprio navegador
+(`createImageBitmap` e canvas); o vídeo ganha uma capa tirada de um quadro do
+começo. O upload sai direto do arquivo do navegador, sem passar pela memória
+do Dart.
+
+### Quem vê as fotos
+
+Só quem participa da viagem, conferido em dois lugares:
+
+- **Firestore**: o post (`trips/{tripId}/posts/{postId}`) só é lido por
+  participante, e só pode apontar para arquivos da pasta dele.
+- **Storage**: cada arquivo sob `trips/{tripId}` só é lido, enviado ou apagado
+  por quem está na lista `memberIds` da viagem. Quem sai da viagem perde o
+  acesso aos arquivos no mesmo instante.
+
+O post guarda o **caminho** do arquivo, nunca o link de download. O link do
+Firebase carrega um token que abre o arquivo para qualquer pessoa que o tiver,
+sem passar pelas regras; por isso ele é pedido na hora, só vive na sessão, e
+só sai para quem o Storage reconhece. O limite é o de sempre: alguém da viagem
+pode compartilhar a foto, e é para isso que o botão existe.
 
 ## Mapa
 
@@ -188,7 +254,9 @@ faixa piscar em toda abertura.
 
 O que **não** funciona offline: entrar pela primeira vez (o Firebase Auth
 precisa da rede — uma sessão já aberta continua valendo), o mapa, a previsão do
-tempo e enviar comprovante.
+tempo, enviar comprovante e o mural. As fotos não abrem sem rede de propósito:
+o link de cada uma é pedido ao Storage na hora, para ele conferir quem está
+pedindo (ver "Mural").
 
 ### Por que um service worker à mão
 
@@ -307,7 +375,7 @@ divisões e conta entre amigos precisa fechar no centavo — ver
 - [x] **3** — Roteiro (timeline por dia, transporte, vínculo com contas)
 - [x] **4** — Contas compartilhadas (parcelamento, divisão, cotas, pagamentos)
 - [x] **5** — Comprovantes (upload, visualização, exclusão)
-- [ ] **6** — Mural (fotos e vídeos)
+- [x] **6** — Mural (fotos e vídeos, câmera, exportação)
 - [ ] **7** — Dashboard completo, polimento e PWA (offline e service worker prontos)
 - [ ] **8** — Deploy na Vercel
 - [ ] **9** — Android (APK) e iOS
